@@ -4,7 +4,7 @@
 
 - Require `--accept-adhoc-signing` for apply and explain the signing and Gatekeeper tradeoff before changing files.
 
-- Rename the CLI command to `androperator-emulator-icon`; retain the package name `@androperator/emulator-icon-macos`.
+- Rename the repository to `android-emulator-macos-tweaks`, package to `@androperator/emulator-macos-tweaks`, and command to `androperator-emulator-tweaks`. Backup paths and SDK lock names remain unchanged for compatibility.
 
 ## 0.1.0
 

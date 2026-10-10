@@ -9,16 +9,16 @@ test('every bundled icon has its profiled hash, dimensions and allocation length
  for(const profile of profiles)for(const slot of profile.slots){const bytes=await readFile(new URL(`../assets/${slot.size}.png`,import.meta.url));assert.equal(sha256(bytes),slot.replacementSha256);assert.equal(pngLength(bytes,0,slot.size),slot.length);assert.equal(bytes.length,slot.length);}
 });
 test('CLI help is usable and invalid commands fail',()=>{
- const cli=fileURLToPath(new URL('../bin/androperator-emulator-icon.js',import.meta.url));
- assert.match(execFileSync(process.execPath,[cli,'--help'],{encoding:'utf8'}),/Usage: androperator-emulator-icon <status\|apply\|restore>/);
- assert.throws(()=>execFileSync(process.execPath,[cli,'erase'],{stdio:'pipe'}),error=>error.status===1 && /androperator-emulator-icon: Expected status/.test(error.stderr.toString()));
+ const cli=fileURLToPath(new URL('../bin/androperator-emulator-tweaks.js',import.meta.url));
+ assert.match(execFileSync(process.execPath,[cli,'--help'],{encoding:'utf8'}),/Usage: androperator-emulator-tweaks <status\|apply\|restore>/);
+ assert.throws(()=>execFileSync(process.execPath,[cli,'erase'],{stdio:'pipe'}),error=>error.status===1 && /androperator-emulator-tweaks: Expected status/.test(error.stderr.toString()));
  assert.throws(()=>execFileSync(process.execPath,[cli,'apply','--force'],{stdio:'pipe'}),error=>error.status===1);
 });
 
-test('npm exposes androperator-emulator-icon while preserving the scoped package name',async()=>{
+test('npm exposes androperator-emulator-tweaks with the renamed scoped package',async()=>{
  const metadata=JSON.parse(await readFile(new URL('../package.json',import.meta.url)));
- assert.equal(metadata.name,'@androperator/emulator-icon-macos');
- assert.deepEqual(metadata.bin,{'androperator-emulator-icon':'bin/androperator-emulator-icon.js'});
+ assert.equal(metadata.name,'@androperator/emulator-macos-tweaks');
+ assert.deepEqual(metadata.bin,{'androperator-emulator-tweaks':'bin/androperator-emulator-tweaks.js'});
 });
 
 test('apply requires explicit signing acceptance before inspecting or modifying the SDK',async t=>{
@@ -32,7 +32,7 @@ test('apply requires explicit signing acceptance before inspecting or modifying 
  const binary=join(directory,'qemu-system-aarch64');await writeFile(binary,'unchanged executable');
  await writeFile(join(sdk,'emulator/source.properties'),'Pkg.Revision=99.0.0');
  const backup=join(root,'backups');
- const cli=fileURLToPath(new URL('../bin/androperator-emulator-icon.js',import.meta.url));
+ const cli=fileURLToPath(new URL('../bin/androperator-emulator-tweaks.js',import.meta.url));
  const args=['apply','--sdk',sdk,'--backup-dir',backup];
  for(const extra of [[],['--json']]){
   assert.throws(()=>execFileSync(process.execPath,[cli,...args,...extra],{stdio:'pipe'}),error=>{
@@ -53,7 +53,7 @@ test('apply requires explicit signing acceptance before inspecting or modifying 
 });
 
 test('help and no-argument usage explain the signing acceptance flag',()=>{
- const cli=fileURLToPath(new URL('../bin/androperator-emulator-icon.js',import.meta.url));
+ const cli=fileURLToPath(new URL('../bin/androperator-emulator-tweaks.js',import.meta.url));
  for(const args of [[],['--help']]){
   const output=execFileSync(process.execPath,[cli,...args],{encoding:'utf8'});
   assert.match(output,/apply.*requires --accept-adhoc-signing/);

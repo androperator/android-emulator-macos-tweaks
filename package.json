@@ -1,9 +1,9 @@
 {
-  "name": "@androperator/emulator-icon-macos",
+  "name": "@androperator/emulator-macos-tweaks",
   "version": "0.1.0",
-  "description": "Reversible native macOS Dock icons for supported Android Emulator builds",
+  "description": "Reversible macOS tweaks for supported Android Emulator builds",
   "type": "module",
-  "bin": { "androperator-emulator-icon": "bin/androperator-emulator-icon.js" },
+  "bin": { "androperator-emulator-tweaks": "bin/androperator-emulator-tweaks.js" },
   "engines": { "node": ">=22" },
   "os": ["darwin"],
   "license": "MIT",

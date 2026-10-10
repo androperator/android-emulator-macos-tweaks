@@ -1,6 +1,6 @@
-# @androperator/emulator-icon-macos
+# @androperator/emulator-macos-tweaks
 
-Give the standalone Android™ Emulator a native macOS Dock icon. Apply a verified patch and restore the exact original executable whenever you want.
+Small, reversible macOS tweaks for the standalone Android™ Emulator. The packaged CLI applies native Dock artwork with verified backups and exact restoration. An isolated prototype also explores per-device icons and AVD names in the Dock.
 
 ![macOS emulator icon](assets/256.png)
 
@@ -24,39 +24,39 @@ Every `apply` invocation requires `--accept-adhoc-signing` to acknowledge this t
 Once published:
 
 ```sh
-npm install -g @androperator/emulator-icon-macos
-androperator-emulator-icon status
-androperator-emulator-icon apply --accept-adhoc-signing
-androperator-emulator-icon restore
+npm install -g @androperator/emulator-macos-tweaks
+androperator-emulator-tweaks status
+androperator-emulator-tweaks apply --accept-adhoc-signing
+androperator-emulator-tweaks restore
 ```
 
 For a local checkout before publication:
 
 ```sh
 npm test
-node bin/androperator-emulator-icon.js status
-node bin/androperator-emulator-icon.js apply --accept-adhoc-signing
-node bin/androperator-emulator-icon.js restore
+node bin/androperator-emulator-tweaks.js status
+node bin/androperator-emulator-tweaks.js apply --accept-adhoc-signing
+node bin/androperator-emulator-tweaks.js restore
 ```
 
 SDK discovery checks `--sdk`, then `ANDROID_HOME`, `ANDROID_SDK_ROOT`, and `~/Library/Android/sdk`. Automatic discovery selects the first existing SDK; an explicit `--sdk` never falls back to another SDK.
 
 ```sh
-androperator-emulator-icon apply --accept-adhoc-signing --sdk "$HOME/Library/Android/sdk"
-androperator-emulator-icon status --json
+androperator-emulator-tweaks apply --accept-adhoc-signing --sdk "$HOME/Library/Android/sdk"
+androperator-emulator-tweaks status --json
 ```
 
 Restart your emulator after applying or restoring. Existing running processes keep their current icon. Future standalone launches through Android Studio, the terminal, or other apps use the patched executable in that SDK. The icon is a static rendering of Apple's macOS 27 icon shape and lighting; it does not dynamically switch Liquid Glass appearances.
 
 ## Backups and restoration
 
-Backups live in `~/Library/Application Support/emulator-icon-macos/backups`. The CLI prints the specific backup directory. Each SDK executable has its own directory, with separate records for each original executable hash. Each record contains the untouched original executable, signed patched executable, original entitlements, and a receipt with hashes and image locations. No emulator binaries are distributed in the npm package.
+Backups live in `~/Library/Application Support/emulator-icon-macos/backups`. This existing directory name is retained across the rename so earlier backups remain usable. The CLI prints the specific backup directory. Each SDK executable has its own directory, with separate records for each original executable hash. Each record contains the untouched original executable, signed patched executable, original entitlements, and a receipt with hashes and image locations. No emulator binaries are distributed in the npm package.
 
 `restore` verifies both the current patch and the original backup before atomically replacing the executable. Repeated apply or restore commands are safe. SDK updates may remove the patch: the tool keeps the old backup and refuses to restore it over an updated binary. You can apply again only once that new build is supported.
 
 You may choose a backup location with `--backup-dir PATH`. Use the same location for status, apply, and restore. Moving or deleting backups prevents automatic restoration. Treat the receipt and backup files as part of the backup, not disposable cache files.
 
-The SDK directory lock prevents overlapping mutations, even with different backup directories. If a process is forcibly killed, it may leave `.emulator-icon-macos.lock` beside the executable. Check `owner.json` and confirm the process is no longer running before removing that specific lock directory. There is no automatic stale-lock deletion.
+The SDK directory lock prevents overlapping mutations, even with different backup directories. Its existing `.emulator-icon-macos.lock` name is retained so old and renamed CLI copies share the same lock. If a process is forcibly killed, it may leave `.emulator-icon-macos.lock` beside the executable. Check `owner.json` and confirm the process is no longer running before removing that specific lock directory. There is no automatic stale-lock deletion.
 
 An interrupted run after signing has a prepared receipt and can recover on the next apply or restore. Earlier failures leave a `.prepare-*` folder in the backup directory for inspection; it is not used as a completed backup. Never delete backups until you have verified the SDK is restored or replaced by an SDK update.
 
@@ -64,11 +64,11 @@ An interrupted run after signing has a prepared receipt and can recover on the n
 
 If you installed the prototype from a previous experiment, first run its own restore command. The CLI refuses to adopt an unrecognized pre-existing patch, even if it looks identical. Then run this CLI's `apply --accept-adhoc-signing` to create a managed backup.
 
-## Experimental per-device icons
+## Experimental per-device icons and names
 
-An isolated [automatic icon prototype](https://github.com/chrislacy/emulator-icon-macos/blob/feat/native-emulator-icon/prototype/README.md) can select phone,
+An isolated [automatic icon prototype](https://github.com/chrislacy/android-emulator-macos-tweaks/blob/feat/native-emulator-icon/prototype/README.md) can select phone,
 tablet, TV, watch and automotive icons for each process in a temporary SDK copy.
-It requires Xcode and does not change the installed emulator or the stable CLI.
+It also provides optional preview launchers named after their AVDs. It requires Xcode and does not change the installed emulator or the packaged CLI.
 
 ## Development and release
 
