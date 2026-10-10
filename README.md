@@ -104,6 +104,8 @@ Before publishing, run the tests and inspect the package contents, update the ve
 
 ## License and attribution
 
-CLI code is MIT licensed. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for artwork attribution and third-party notices.
+Code is licensed under [Apache 2.0](LICENSE). See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for artwork attribution and third-party notices.
 
 Android is a trademark of Google LLC. This project is not affiliated with or endorsed by Google or Apple.
+
+Written by clankers. Engineered by [@chrismlacy](https://x.com/chrismlacy).
