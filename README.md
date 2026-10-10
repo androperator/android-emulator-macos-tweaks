@@ -1,16 +1,16 @@
 # @androperator/emulator-macos-tweaks
 
-Small, reversible macOS tweaks for the standalone Android™ Emulator. The packaged CLI selects native phone, tablet, TV, watch or automotive Dock artwork for each AVD, with verified backups and exact restoration. AVD naming remains experimental.
+A completely and utterly unessential utility that makes Android™ emulators feel more at home on macOS. Give your phone, tablet, TV, watch and automotive emulators distinct icons that fit in with the rest of your apps, with safe backups and an easy way to undo the changes.
 
-**Before:** the tablet, phone and watch share the same circular icon and executable label.
+**With Android Emulator macOS Tweaks:**
 
-![Before: three identical circular emulator icons, with the phone selected as qemu-system-aarch64](docs/images/emulator-app-switcher-before.png)
+![With Android Emulator macOS Tweaks: distinct tablet, phone and watch icons, with Pixel_9 selected](docs/images/emulator-app-switcher-after.png)
 
-**After:** distinct macOS icons for the tablet, phone and watch.
+**Without Android Emulator macOS Tweaks:**
 
-![After: distinct tablet, phone and watch icons, with the phone selected as Pixel_9](docs/images/emulator-app-switcher-after.png)
+![Without Android Emulator macOS Tweaks: three identical circular emulator icons, with qemu-system-aarch64 selected](docs/images/emulator-app-switcher-before.png)
 
-Per-device icons are supported by the CLI. The `Pixel_9` label in the after screenshot uses the [experimental AVD naming launcher](experimental/README.md); ordinary CLI-patched launches keep their executable label.
+Per-device icons are supported by the CLI. The `Pixel_9` label in the screenshot uses the [experimental AVD naming launcher](experimental/README.md); ordinary CLI-patched launches keep their executable label.
 
 This is an independent CLI. It does not depend on ADBuddy or change emulator launch arguments, virtual devices, headless emulators, or Android Studio itself.
 
