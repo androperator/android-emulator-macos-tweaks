@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readRuntime, runtimeFiles } from '../src/runtime.js';
+import { readNamingBundle } from '../src/names.js';
 import { macOS } from '../src/platform.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -20,9 +21,9 @@ try {
   const [packed] = JSON.parse(run('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', temporary]));
   const expected = [
     'LICENSE', 'NOTICE.md', 'README.md', 'package.json', 'bin/androperator-emulator-tweaks.js',
-    ...['core.js', 'macho.js', 'platform.js', 'png.js', 'profiles.json', 'runtime.js'].map(name => `src/${name}`),
+    ...['core.js', 'launch.mjs', 'names.js', 'macho.js', 'platform.js', 'png.js', 'profiles.json', 'runtime.js'].map(name => `src/${name}`),
     ...['32.png', '128.png', '256.png', 'Emulator.icon/icon.json', 'Emulator.icon/Assets/emulator-symbol.svg'].map(name => `assets/${name}`),
-    'assets/runtime/manifest.json', ...runtimeFiles.map(name => `assets/runtime/${name}`)
+    'assets/launcher/launcher', 'assets/launcher/manifest.json', 'assets/runtime/manifest.json', ...runtimeFiles.map(name => `assets/runtime/${name}`)
   ];
   assert.deepEqual(packed.files.map(file => file.path).sort(), expected.sort(), 'Unexpected package contents');
   const archive = join(temporary, packed.filename);
@@ -39,6 +40,7 @@ try {
   assert.equal(run(cli, ['--version'], consumer).trim(), metadata.version);
   for (const args of [[], ['--help']]) assert.match(run(cli, args, consumer), /Usage: androperator-emulator-tweaks/);
   await readRuntime(join(installed, 'assets/runtime'), macOS);
+  await readNamingBundle(installed, macOS);
   const sdk = join(temporary, 'sdk');
   const emulator = join(sdk, 'emulator');
   await mkdir(join(emulator, 'qemu/darwin-aarch64'), { recursive: true });

@@ -14,3 +14,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm run release:pack -- "$RUNNER_TEMP/emulator-macos-tweaks-test.tgz"
+      - name: Verify native AVD dispatcher
+        if: runner.arch == 'ARM64'
+        run: npm run verify:names

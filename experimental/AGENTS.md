@@ -3,7 +3,7 @@
 Read [README.md](README.md) before changing this folder.
 
 These tools explore per-device icons and AVD names in temporary SDK copies.
-Automatic icons are supported in the main CLI; AVD naming remains experimental.
+Automatic icons and AVD naming are supported in the main CLI; these older preview tools remain experimental.
 These preview tools are excluded from the npm package and are separate from the supported
 CLI in `../src/` and `../bin/`.
 

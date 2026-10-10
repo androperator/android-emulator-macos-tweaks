@@ -1,7 +1,7 @@
 # Experimental AVD Dock names
 
-Automatic per-device icons are supported by the main CLI. This folder contains
-per-AVD named preview launchers, which remain excluded from the npm package.
+Automatic per-device icons and standard-launch AVD names are supported by the main CLI. This folder contains
+the older per-AVD named preview launchers, which remain excluded from the npm package.
 The phone preview's actual Dock tooltip has been confirmed as `Pixel_9`;
 Cmd-Tab labels still need direct visual verification.
 
@@ -42,8 +42,7 @@ case-insensitive aliases, are refused.
 
 The previous private LaunchServices rename changed a process record but did not
 change the Dock or task-switcher label. It has been removed. Process metadata
-checks alone do not establish either visible label. Global AVD naming for
-ordinary installed-SDK launches has not been implemented; Android Studio
+checks alone do not establish either visible label. The main CLI now provides AVD naming for ordinary installed-SDK launches. Android Studio
 embedded mode has not been tested.
 
 Keep both printed temporary directories while using the named launcher. Close

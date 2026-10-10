@@ -50,6 +50,8 @@ rebuild and verify them with Xcode and a graphical macOS session before packing:
 ```sh
 npm run build:runtime
 npm run verify:icons
+npm run build:launcher
+npm run verify:names
 ```
 
 Open a PR, complete review and wait for Node 22/24 CI checks. With explicit

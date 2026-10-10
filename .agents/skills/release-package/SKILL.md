@@ -18,7 +18,7 @@ authorizes merging its reviewed release PR and pushing its release tag.
 - Publisher: `.github/workflows/publish-npm.yml`, GitHub-hosted macOS, Node 24 and npm 11.5.1+ using OIDC. No npm token or local login is needed once trust is configured.
 - Main requires `test (22)` and `test (24)`; squash merges only.
 - Runtime helper and icons are committed release assets. Do not rebuild them for a version-only release.
-- AVD naming stays experimental and outside the npm archive. No Homebrew update or GitHub Release is part of this workflow.
+- AVD naming and its native dispatcher are included in the npm archive. No Homebrew update or GitHub Release is part of this workflow.
 
 ## Prepare
 
@@ -39,7 +39,7 @@ authorizes merging its reviewed release PR and pushing its release tag.
    temporary consumer and verifies CLI output, synthetic SDK status and native
    runtime hashes/signing. It does not modify the installed SDK or run an emulator.
    If native sources/assets changed, also rebuild with `npm run build:runtime`
-   and run `npm run verify:icons` with Xcode and a graphical macOS session before
+   and rebuild `npm run build:launcher` when its source changes; run `npm run verify:names` and `npm run verify:icons` with Xcode and a graphical macOS session before
    packing; commit the complete regenerated runtime and manifest together.
 5. Commit, run the requested Astra review workflow, and open/update a PR. Wait
    for both required checks. Never push release changes directly to main.
