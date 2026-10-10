@@ -23,25 +23,25 @@ Once published:
 
 ```sh
 npm install -g @androperator/emulator-icon-macos
-emulator-icon status
-emulator-icon apply
-emulator-icon restore
+androperator-emulator-icon status
+androperator-emulator-icon apply
+androperator-emulator-icon restore
 ```
 
 For a local checkout before publication:
 
 ```sh
 npm test
-node bin/emulator-icon.js status
-node bin/emulator-icon.js apply
-node bin/emulator-icon.js restore
+node bin/androperator-emulator-icon.js status
+node bin/androperator-emulator-icon.js apply
+node bin/androperator-emulator-icon.js restore
 ```
 
 SDK discovery checks `--sdk`, then `ANDROID_HOME`, `ANDROID_SDK_ROOT`, and `~/Library/Android/sdk`. Automatic discovery selects the first existing SDK; an explicit `--sdk` never falls back to another SDK.
 
 ```sh
-emulator-icon apply --sdk "$HOME/Library/Android/sdk"
-emulator-icon status --json
+androperator-emulator-icon apply --sdk "$HOME/Library/Android/sdk"
+androperator-emulator-icon status --json
 ```
 
 Restart your emulator after applying or restoring. Existing running processes keep their current icon. Future standalone launches through Android Studio, the terminal, or other apps use the patched executable in that SDK. The icon is a static rendering of Apple's macOS 27 icon shape and lighting; it does not dynamically switch Liquid Glass appearances.
