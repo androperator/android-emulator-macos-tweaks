@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256">
+<defs><clipPath id="screen"><rect x="92" y="63" width="72" height="130"/></clipPath></defs>
+<g transform="translate(128 128) scale(1.15) translate(-128 -128)">
+<g clip-path="url(#screen)">
+<path fill="#35D780" d="M92 76 C119 79 140 101 140 128 C140 155 119 178 92 180 Z"/>
+<path stroke="#35D780" stroke-width="3" stroke-linecap="round" d="M132 99 L149 88 M132 154 L149 165"/>
+<circle cx="111" cy="104" r="4.5" fill="white"/><circle cx="111" cy="152" r="4.5" fill="white"/>
+</g>
+<path fill="#4083F7" fill-rule="evenodd" d="M93 48 H163 Q179 48 179 64 V192 Q179 208 163 208 H93 Q77 208 77 192 V64 Q77 48 93 48 Z M92 63 V193 H164 V63 Z"/>
+</g>
+</svg>

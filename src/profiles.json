@@ -1,0 +1,29 @@
+[
+  {
+    "revision": "37.1.11",
+    "build": "15917651",
+    "architecture": "arm64",
+    "binary": "qemu/darwin-aarch64/qemu-system-aarch64",
+    "sha256": "eaa97a970b81f81640db73ed79e19ee173323653a0a1203217e1199d078011f3",
+    "slots": [
+      {
+        "size": 32,
+        "length": 1265,
+        "sha256": "1ca1a82332cbb2a3cb0228dd12430134a92e84de1e5954d3a9a173241e81b846",
+        "replacementSha256": "3e76899cc4cc8fcd28b915f8d35456021a65bd6595436ebeb893298799d776bd"
+      },
+      {
+        "size": 128,
+        "length": 3761,
+        "sha256": "6f18ce79178f35186f0139a9299a9eefa4b1fc6bfe3d57d46cb0b58ee0d58728",
+        "replacementSha256": "d5b84255b773ceea097b154b7e7561269a40c8a4ecc4d12cdc2581133acfd204"
+      },
+      {
+        "size": 256,
+        "length": 7534,
+        "sha256": "4c3b9dbde6487e5ece1e606af8876c73365ec2ef4340926a283397cd941ee14e",
+        "replacementSha256": "968f9a96e5d01f5872d1b9255ed35bebe43f5236bf9c4b8e9c95e5d247318941"
+      }
+    ]
+  }
+]

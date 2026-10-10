@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "architecture": "arm64",
+  "files": {
+    "helper.dylib": "6fe880bcb1767cca55695f72503c21427cdbb74280a6dc676ab28b71e35da95a",
+    "icons/phone.png": "968f9a96e5d01f5872d1b9255ed35bebe43f5236bf9c4b8e9c95e5d247318941",
+    "icons/tablet.png": "eb74a4cd3ba55b73bc45e5a83157c16779386d37cae4a10ff008342598fdaecd",
+    "icons/tv.png": "398ae5320e27803f24a3c73d4e9def98a0fafa71943e378e6f0a2d999545e6df",
+    "icons/watch.png": "5177c315a89b27901c36f5d061dc4d488cea7499e23390e39cd493f52446ae13",
+    "icons/automotive.png": "9bd6574c7aa8863b490941cc649fc2e0ffba213ec6954d644f65fbc9b8bcf5ac"
+  }
+}

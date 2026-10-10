@@ -1,0 +1,13 @@
+{
+  "name": "@androperator/emulator-macos-tweaks",
+  "version": "1.0.0",
+  "description": "Reversible macOS tweaks for supported Android Emulator builds",
+  "type": "module",
+  "bin": { "androperator-emulator-tweaks": "bin/androperator-emulator-tweaks.js" },
+  "engines": { "node": ">=22" },
+  "os": ["darwin"],
+  "license": "Apache-2.0",
+  "publishConfig": { "access": "public" },
+  "files": ["bin", "src", "assets", "NOTICE.md", "LICENSE"],
+  "scripts": { "test": "node --test", "prepack": "npm test", "build:runtime": "node scripts/build-runtime.mjs", "verify:icons": "node scripts/verify-icons.mjs" }
+}
