@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Require `--accept-adhoc-signing` for apply and explain the signing and Gatekeeper tradeoff before changing files.
+
 - Rename the CLI command to `androperator-emulator-icon`; retain the package name `@androperator/emulator-icon-macos`.
 
 ## 0.1.0

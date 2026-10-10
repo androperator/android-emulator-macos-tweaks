@@ -15,7 +15,9 @@ This is an independent CLI. It does not depend on ADBuddy or change emulator lau
 
 This first release intentionally supports one verified binary. Intel and other emulator builds are reported as unsupported and refused. Matching the version number alone is insufficient: the entire original executable and its embedded icon images must match the support profile.
 
-Patching replaces Google's signature with a **local ad-hoc signature**, preserving the original entitlements and hardened runtime. The modified emulator is no longer Google-signed or notarized. The CLI does not disable Gatekeeper or change system security settings.
+Patching replaces Google's signature with a **local ad-hoc signature**, preserving the original entitlements and hardened runtime. The modified emulator is no longer Google-signed or notarized. No developer certificate or private key is used. Gatekeeper may treat the patched emulator differently. The CLI does not disable Gatekeeper or change system security settings.
+
+Every `apply` invocation requires `--accept-adhoc-signing` to acknowledge this tradeoff, including repeated calls and reapplying a saved patch. Without it, the CLI explains the change and exits before SDK discovery or file modification. `status` and `restore` do not require the flag. Restore reinstates the exact original executable and Google’s original signature.
 
 ## Install and use
 
@@ -24,7 +26,7 @@ Once published:
 ```sh
 npm install -g @androperator/emulator-icon-macos
 androperator-emulator-icon status
-androperator-emulator-icon apply
+androperator-emulator-icon apply --accept-adhoc-signing
 androperator-emulator-icon restore
 ```
 
@@ -33,14 +35,14 @@ For a local checkout before publication:
 ```sh
 npm test
 node bin/androperator-emulator-icon.js status
-node bin/androperator-emulator-icon.js apply
+node bin/androperator-emulator-icon.js apply --accept-adhoc-signing
 node bin/androperator-emulator-icon.js restore
 ```
 
 SDK discovery checks `--sdk`, then `ANDROID_HOME`, `ANDROID_SDK_ROOT`, and `~/Library/Android/sdk`. Automatic discovery selects the first existing SDK; an explicit `--sdk` never falls back to another SDK.
 
 ```sh
-androperator-emulator-icon apply --sdk "$HOME/Library/Android/sdk"
+androperator-emulator-icon apply --accept-adhoc-signing --sdk "$HOME/Library/Android/sdk"
 androperator-emulator-icon status --json
 ```
 
@@ -60,7 +62,7 @@ An interrupted run after signing has a prepared receipt and can recover on the n
 
 ### Migrating the earlier local prototype
 
-If you installed the prototype from a previous experiment, first run its own restore command. The CLI refuses to adopt an unrecognized pre-existing patch, even if it looks identical. Then run this CLI's `apply` to create a managed backup.
+If you installed the prototype from a previous experiment, first run its own restore command. The CLI refuses to adopt an unrecognized pre-existing patch, even if it looks identical. Then run this CLI's `apply --accept-adhoc-signing` to create a managed backup.
 
 ## Development and release
 
