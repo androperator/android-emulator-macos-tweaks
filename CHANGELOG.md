@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Rename the CLI command to `emulator-icon`; retain the package name `@androperator/emulator-icon-macos`.
+
 ## 0.1.0
 
 - Add SDK discovery, status, apply, and restore commands.

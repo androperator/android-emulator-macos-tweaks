@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { apply, restore, inspect } from '../src/core.js';
-const help = `Usage: emulator-icon-macos <status|apply|restore> [--sdk PATH] [--backup-dir PATH] [--json]
+const help = `Usage: emulator-icon <status|apply|restore> [--sdk PATH] [--backup-dir PATH] [--json]
 
 status   Detect the SDK, version, executable support and backup state.
 apply    Back up and patch a supported standalone emulator executable.
@@ -27,4 +27,4 @@ try {
     if (result.changed) output.sha256 = (await inspect({ sdk: values.sdk, backupDir: values['backup-dir'] })).targetHash;
     console.log(values.json ? JSON.stringify(output, null, 2) : `${result.state}: Android Emulator ${result.revision}\n${result.target}${output.backup ? `\nBackup: ${output.backup}` : ''}${result.changed ? '\nRestart emulators to see the change.' : ''}`);
   }
-} catch (error) { console.error(`emulator-icon-macos: ${error.message}`); process.exitCode = 1; }
+} catch (error) { console.error(`emulator-icon: ${error.message}`); process.exitCode = 1; }
