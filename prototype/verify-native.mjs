@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -51,15 +51,29 @@ try {
     ['missing', 'phone', []],
     ['invalid-name', 'phone', ['-avd', '../invalid']]
   );
+  const namedDirectory = join(root, 'named'); await mkdir(namedDirectory);
+  const names = new Set(cases.map(([, , args]) => {
+    const index = args.indexOf('-avd');
+    const name = index >= 0 ? args[index + 1] : args[0]?.startsWith('@') ? args[0].slice(1) : 'probe';
+    return name.includes('/') ? 'probe' : name;
+  }));
+  for (const name of names) await cp(probe, join(namedDirectory, name));
   await Promise.all(cases.map(async ([name, variant, args]) => {
     const namedIndex = args.indexOf('-avd');
     const expectedName = namedIndex >= 0 ? args[namedIndex + 1] : args[0]?.startsWith('@') ? args[0].slice(1) : null;
     const naming = { EMULATOR_ICON_EXPECTED_NAME: expectedName && !expectedName.includes('/') ? expectedName : 'probe' };
-    const { stderr } = await execute(probe, args, { env: { ...environment, ...naming, EMULATOR_ICON_EXPECTED: join(root, 'icons', `${variant}.png`) }, timeout: 30000 });
+    const { stderr } = await execute(join(namedDirectory, naming.EMULATOR_ICON_EXPECTED_NAME), args, { env: { ...environment, ...naming, EMULATOR_ICON_EXPECTED: join(root, 'icons', `${variant}.png`) }, timeout: 30000 });
     assert.ok(stderr.includes(`variant=${variant} `), `${name}: ${stderr}`);
     assert.ok(stderr.includes('application icon matches expected variant'), name);
     console.log(`${name}: ${variant}, AppKit pixels and application name verified`);
   }));
+  const wrapper = join(namedDirectory, 'wrapper');
+  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-DAVD_NAME="watch"', join(sourceRoot, 'prototype/launch-wrapper.c'), '-o', wrapper]);
+  await run('/usr/bin/codesign', ['--force', '--sign', '-', wrapper]);
+  const wrapperEnvironment = { ...environment, EMULATOR_ICON_EXPECTED_NAME: 'watch', EMULATOR_ICON_EXPECTED: join(root, 'icons/watch.png') };
+  await execute(wrapper, ['-avd', 'watch'], { env: wrapperEnvironment, timeout: 30000 });
+  for (const args of [['-avd', 'phone'], ['@phone']]) await assert.rejects(execute(wrapper, args, { env: wrapperEnvironment }), error => error.code === 1 && error.stderr.includes('This preview launcher is for watch'));
+  console.log('native forwarding launcher: arguments, environment and name verified');
   // Missing artwork must preserve the caller's icon instead of crashing.
   await rm(join(root, 'icons/watch.png'));
   await execute(probe, ['-avd', 'watch'], { env: { ...environment, EMULATOR_ICON_FALLBACK: '1' }, timeout: 30000 });

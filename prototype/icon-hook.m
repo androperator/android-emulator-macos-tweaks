@@ -66,25 +66,6 @@ static NSString *ConfigurationPath(void) {
     return nil;
 }
 
-static void SetDockName(void) {
-    static BOOL applied = NO;
-    if (applied) return;
-    NSString *name = AVDName();
-    if (!name) return;
-    CFBundleRef services = CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
-    if (!services) return;
-    CFTypeRef (*getASN)(void) = CFBundleGetFunctionPointerForName(services, CFSTR("_LSGetCurrentApplicationASN"));
-    OSStatus (*setName)(int, CFTypeRef, CFStringRef, CFTypeRef, CFDictionaryRef *) = CFBundleGetFunctionPointerForName(services, CFSTR("_LSSetApplicationInformationItem"));
-    const CFStringRef *key = CFBundleGetDataPointerForName(services, CFSTR("_kLSDisplayNameKey"));
-    if (!getASN || !setName || !key || !*key) return;
-    // The current ASN is borrowed, not owned by this helper.
-    CFTypeRef asn = getASN();
-    if (!asn) return;
-    // Private LaunchServices API, also used by WebKit. Missing symbols leave the name unchanged.
-    OSStatus status = setName(-2, asn, *key, (__bridge CFStringRef)name, NULL);
-    if (!status) { applied = YES; fprintf(stderr, "[emulator-icon] dock-name=%s\n", name.UTF8String); }
-}
-
 static NSImage *SelectedIcon(void) {
     static NSImage *icon;
     static dispatch_once_t once;
@@ -112,7 +93,6 @@ static NSImage *SelectedIcon(void) {
     dispatch_async(dispatch_get_main_queue(), ^{ if (NSApp && SelectedIcon()) [NSApp setApplicationIconImage:SelectedIcon()]; });
 }
 - (void)emulatorIcon_setApplicationIconImage:(NSImage *)image {
-    SetDockName();
     [self emulatorIcon_setApplicationIconImage:SelectedIcon() ?: image];
 }
 @end

@@ -1,8 +1,7 @@
 # Automatic device icon prototype
 
 This experiment chooses a Dock icon separately for each emulator process. It
-supports phone, tablet, TV, watch and automotive artwork, and uses the launch
-AVD name as the application display name shown by the Dock. It is separate from
+supports phone, tablet, TV, watch and automotive artwork, and offers named preview launchers for Dock and task-switcher label experiments. It is separate from
 the stable CLI and is not included in the npm package.
 
 ## Try it without modifying your installed SDK
@@ -66,12 +65,26 @@ updates keep the selected device icon. Selection happens independently in each
 process. No background service, polling, launch wrapper environment variable or
 personal signing key is required after the startup hook is present.
 
-Dock naming uses a private LaunchServices function resolved dynamically. It
-changes only the current process's display name, using the literal `-avd` or
-`@NAME` value. If the function is unavailable or rejects the update, the emulator
-keeps its original label and the icon continues to work. This behavior is
-experimental and could stop working with a future macOS update. No application
-bundles, AVD names or global LaunchServices settings are rewritten.
+For Dock and task-switcher labels, create a separate preview launcher for each AVD:
+
+```sh
+node prototype/launch-preview.mjs /printed/temporary/path Pixel_9
+```
+
+Use its printed launcher with the same AVD name and `-read-only -no-snapshot`.
+This copies the patched backend to an executable literally named `Pixel_9` and
+places a small native forwarding executable at the launcher's usual backend path.
+The forwarding executable preserves the standard launcher's arguments and full
+environment. Directly launching the renamed backend without that environment can
+fail to load its graphics libraries. The named copy retains the original patched
+bytes and signature. Close the preview and remove its printed temporary directory
+to undo it; keep its base prototype while using the named launcher.
+
+The previous private LaunchServices display-name update changed the process record
+but did not change the actual Dock tooltip or task-switcher label. It has been
+removed. Metadata checks alone do not establish either visible label; verify those
+surfaces when testing a named preview. A global per-device naming mechanism for
+ordinary installed-SDK launches has not been implemented.
 
 The supported emulator already permits local library loading through its
 entitlements. Signing preserves those entitlements. The temporary executable is

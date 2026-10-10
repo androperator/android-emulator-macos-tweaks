@@ -40,3 +40,10 @@ test('prototype refuses invalid architecture, malformed tables, relative paths a
   const wrongSections = executable(); wrongSections.writeUInt32LE(2, 96);
   assert.throws(() => addIconHelper(wrongSections, '/tmp/helper'), /sections/);
 });
+
+// Named preview executables must stay within the temporary backend directory.
+test('preview AVD names cannot introduce paths or invalid executable names', async () => {
+  const { validateAVDName } = await import('../prototype/launch-preview.mjs');
+  for (const name of ['Pixel_9', 'EmulatorIcon_Tablet_Preview', 'watch-1.0']) validateAVDName(name);
+  for (const name of ['', '.', '..', '../phone', 'phone/device', 'phone with spaces', 'a'.repeat(256)]) assert.throws(() => validateAVDName(name), /valid AVD/);
+});
