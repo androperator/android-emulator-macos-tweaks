@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { run, macOS } from '../src/platform.js';
 import { sha256 } from '../src/png.js';
 export function validateAVDName(name) {
-  if (!/^[A-Za-z0-9_.-]{1,255}$/.test(name ?? '') || ['.', '..', 'qemu-system-aarch64'].includes(name)) throw new Error('Expected a valid AVD name');
+  if (!/^[A-Za-z0-9_.-]{1,255}$/.test(name ?? '') || ['.', '..', 'qemu-system-aarch64'].includes(name?.toLowerCase())) throw new Error('Expected a valid AVD name');
 }
 export async function createNamedPreview(rootPath, name) {
   validateAVDName(name);
@@ -24,7 +24,7 @@ export async function createNamedPreview(rootPath, name) {
     for (const entry of await readdir(from, { withFileTypes: true })) {
       const key = relative ? `${relative}/${entry.name}` : entry.name;
       const input = join(from, entry.name), output = join(to, entry.name);
-      if (relative === 'emulator/qemu/darwin-aarch64' && entry.name === name) continue;
+      if (relative === 'emulator/qemu/darwin-aarch64' && entry.name.toLowerCase() === name.toLowerCase()) continue;
       if (['emulator', 'emulator/qemu', 'emulator/qemu/darwin-aarch64'].includes(key)) await copyTree(input, output, key);
       else if (key === 'emulator/emulator') await macOS.copy(input, output);
       else if (key === 'emulator/qemu/darwin-aarch64/qemu-system-aarch64') {
