@@ -2,13 +2,13 @@
 
 A completely and utterly unessential utility that makes Android™ emulators feel more at home on macOS. Give your phone, tablet, TV, watch and automotive emulators distinct icons that fit in with the rest of your apps, with safe backups and an easy way to undo the changes.
 
-**With Android Emulator macOS Tweaks:**
+**With `androperator-emulator-tweaks`:**
 
-![With Android Emulator macOS Tweaks: distinct tablet, phone and watch icons, with Pixel_9 selected](docs/images/emulator-app-switcher-after.png)
+![With androperator-emulator-tweaks: distinct tablet, phone and watch icons, with Pixel_9 selected](docs/images/emulator-app-switcher-after.png)
 
-**Without Android Emulator macOS Tweaks:**
+**Without `androperator-emulator-tweaks`:**
 
-![Without Android Emulator macOS Tweaks: three identical circular emulator icons, with qemu-system-aarch64 selected](docs/images/emulator-app-switcher-before.png)
+![Without androperator-emulator-tweaks: three identical circular emulator icons, with qemu-system-aarch64 selected](docs/images/emulator-app-switcher-before.png)
 
 Per-device icons are supported by the CLI. The `Pixel_9` label in the screenshot uses the [experimental AVD naming launcher](experimental/README.md); ordinary CLI-patched launches keep their executable label.
 
