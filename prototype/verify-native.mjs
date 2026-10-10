@@ -33,9 +33,23 @@ try {
     await mkdir(directory); await writeFile(join(directory, 'config.ini'), config + '\n');
     if (name === 'pointer') await writeFile(join(avdHome, 'pointer.ini'), `path=${directory}\n`);
   }
-  const environment = { ...process.env, ANDROID_AVD_HOME: avdHome, ANDROID_USER_HOME: root, ANDROID_EMULATOR_HOME: root, DYLD_INSERT_LIBRARIES: helper };
+  const relocated = join(avdHome, 'relocated.avd'); await mkdir(relocated);
+  await writeFile(join(relocated, 'config.ini'), 'tag.id=android-wear\n');
+  await writeFile(join(avdHome, 'relocated.ini'), `path=${join(root, 'missing-old-location')}\npath.rel=avd/relocated.avd\n`);
+  await writeFile(join(avdHome, 'prefer-relative.ini'), `path=${join(avdHome, 'tv.avd')}\npath.rel=avd/relocated.avd\n`);
+  await writeFile(join(avdHome, 'absolute-fallback.ini'), `path=${join(avdHome, 'tv.avd')}\npath.rel=avd/missing-location.avd\n`);
+  const environment = { ...process.env, ANDROID_AVD_HOME: avdHome, ANDROID_USER_HOME: join(root, 'unrelated-user-home'), ANDROID_EMULATOR_HOME: root, DYLD_INSERT_LIBRARIES: helper };
   const cases = fixtures.map(([name, variant]) => [name, variant, ['-avd', name]]);
-  cases.push(['at-name', 'watch', ['@watch']], ['data-directory', 'tv', ['-avd', 'phone', '-datadir', join(avdHome, 'tv.avd')]], ['missing', 'phone', []]);
+  cases.push(
+    ['at-name', 'watch', ['@watch']],
+    ['data-directory', 'watch', ['-avd', 'watch', '-datadir', join(avdHome, 'tv.avd')]],
+    ['empty-data-directory', 'watch', ['-avd', 'watch', '-datadir', join(root, 'empty-data')]],
+    ['data-without-avd', 'phone', ['-datadir', join(avdHome, 'tv.avd')]],
+    ['relative-custom-home', 'watch', ['-avd', 'relocated']],
+    ['relative-before-absolute', 'watch', ['-avd', 'prefer-relative']],
+    ['absolute-fallback', 'tv', ['-avd', 'absolute-fallback']],
+    ['missing', 'phone', []]
+  );
   await Promise.all(cases.map(async ([name, variant, args]) => {
     const { stderr } = await execute(probe, args, { env: { ...environment, EMULATOR_ICON_EXPECTED: join(root, 'icons', `${variant}.png`) }, timeout: 30000 });
     assert.ok(stderr.includes(`variant=${variant} `), `${name}: ${stderr}`);

@@ -31,14 +31,13 @@ static NSString *Variant(NSDictionary *values) {
 static NSString *ConfigurationPath(void) {
     NSArray *arguments = NSProcessInfo.processInfo.arguments;
     NSDictionary *environment = NSProcessInfo.processInfo.environment;
-    NSString *avd = nil, *dataDirectory = nil;
+    NSString *avd = nil;
     for (NSUInteger index = 1; index < arguments.count; index++) {
         NSString *argument = arguments[index];
         if ([argument isEqualToString:@"-avd"] && index + 1 < arguments.count) avd = arguments[++index];
-        else if ([argument isEqualToString:@"-datadir"] && index + 1 < arguments.count) dataDirectory = arguments[++index];
+        else if ([argument isEqualToString:@"-datadir"] && index + 1 < arguments.count) index++;
         else if ([argument hasPrefix:@"@"] && argument.length > 1) avd = [argument substringFromIndex:1];
     }
-    if (dataDirectory) return [dataDirectory stringByAppendingPathComponent:@"config.ini"];
     if (!avd || [avd containsString:@"/"] || [avd isEqualToString:@".."] || [avd isEqualToString:@"."]) return nil;
     NSString *userHome = environment[@"ANDROID_USER_HOME"] ?: [NSHomeDirectory() stringByAppendingPathComponent:@".android"];
     NSMutableArray *roots = [NSMutableArray array];
@@ -47,8 +46,13 @@ static NSString *ConfigurationPath(void) {
     [roots addObject:[userHome stringByAppendingPathComponent:@"avd"]];
     for (NSString *root in roots) {
         NSDictionary *pointer = ReadConfiguration([root stringByAppendingPathComponent:[avd stringByAppendingString:@".ini"]]);
-        NSString *directory = pointer[@"path"];
-        if (!directory && pointer[@"path.rel"]) directory = [userHome stringByAppendingPathComponent:pointer[@"path.rel"]];
+        NSString *directory = nil;
+        BOOL isDirectory = NO;
+        if (pointer[@"path.rel"]) {
+            NSString *relative = [[root stringByDeletingLastPathComponent] stringByAppendingPathComponent:pointer[@"path.rel"]];
+            if ([NSFileManager.defaultManager fileExistsAtPath:relative isDirectory:&isDirectory] && isDirectory) directory = relative;
+        }
+        if (!directory) directory = pointer[@"path"];
         if (!directory) directory = [root stringByAppendingPathComponent:[avd stringByAppendingString:@".avd"]];
         NSString *path = [directory stringByAppendingPathComponent:@"config.ini"];
         if ([NSFileManager.defaultManager fileExistsAtPath:path]) return path;

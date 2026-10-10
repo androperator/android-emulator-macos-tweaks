@@ -45,10 +45,12 @@ The patch uses verified, zero-filled header padding; executable sections keep
 their original positions. If the helper is absent, the weak dependency lets the
 emulator start with its ordinary icon.
 
-Inside each GUI process, the helper reads `-avd NAME`, `@NAME` or `-datadir PATH`
+Inside each GUI process, the helper reads `-avd NAME` or `@NAME`
 and resolves the AVD's `config.ini`. It checks `ANDROID_AVD_HOME`,
 `ANDROID_EMULATOR_HOME/avd`, and `ANDROID_USER_HOME/avd` (default `~/.android/avd`),
-including `.ini` pointers to custom AVD locations.
+including `.ini` pointers to custom AVD locations. A valid `path.rel` relative to
+the parent of the AVD home takes precedence over `path`. `-datadir` changes guest
+data storage, so it does not override the named AVD metadata.
 
 Wear, TV and automotive image tags take precedence. Known tablet profile names
 and a minimum configured screen width of 600 density-independent pixels identify
