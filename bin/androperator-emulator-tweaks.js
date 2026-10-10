@@ -23,7 +23,7 @@ try {
     'accept-adhoc-signing': { type: 'boolean' }, icons: { type: 'string' }, sdk: { type: 'string' }, 'backup-dir': { type: 'string' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' }
   }});
   if (values.help || !positionals.length && !values.version) console.log(help);
-  else if (values.version) console.log('0.1.0');
+  else if (values.version) console.log('1.0.0');
   else {
     if (positionals.length !== 1 || !['status', 'apply', 'restore'].includes(positionals[0])) throw new Error('Expected status, apply, or restore. Use --help.');
     const command = positionals[0];

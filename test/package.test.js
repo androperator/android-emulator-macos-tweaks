@@ -18,6 +18,8 @@ test('CLI help is usable and invalid commands fail',()=>{
 test('npm exposes androperator-emulator-tweaks with the renamed scoped package',async()=>{
  const metadata=JSON.parse(await readFile(new URL('../package.json',import.meta.url)));
  assert.equal(metadata.name,'@androperator/emulator-macos-tweaks');
+ const cli=fileURLToPath(new URL('../bin/androperator-emulator-tweaks.js',import.meta.url));
+ assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}).trim(),metadata.version);
  assert.deepEqual(metadata.bin,{'androperator-emulator-tweaks':'bin/androperator-emulator-tweaks.js'});
 });
 
