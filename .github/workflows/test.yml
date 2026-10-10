@@ -13,5 +13,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm test
-      - run: npm pack --dry-run
+      - run: npm run release:pack -- "$RUNNER_TEMP/emulator-macos-tweaks-test.tgz"

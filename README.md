@@ -100,7 +100,7 @@ To add support for a build, use an untouched, signature-verified vendor executab
 
 The editable `assets/Emulator.icon` source uses a vector phone/Android symbol, white background, and Apple's native icon renderer. The bundled 32, 128 and 256 pixel PNGs were compiled with Xcode's asset compiler and palette-compressed to fit the emulator's allocations. Xcode is not required by CLI users. Native helper source is in `native/`; `node scripts/build-runtime.mjs` rebuilds the packaged arm64 helper and all five icons and writes their content manifest. Rebuild and run native verification after changing those sources; review the regenerated manifest and runtime files together.
 
-Before publishing, run the tests and inspect the package contents, update the version and release notes, and publish explicitly with `npm publish --access public`. This repository has no automatic publishing workflow.
+Releases are prepared through reviewed PRs, then published from version tags using GitHub Trusted Publishing. See [the release guide](docs/releasing.md) and [release skill](.agents/skills/release-package/SKILL.md). On macOS, `npm run release:pack` validates a temporary installation of the archive without modifying your SDK. Publishing requires explicit authorization.
 
 ## License and attribution
 

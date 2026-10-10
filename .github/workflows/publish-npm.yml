@@ -1,0 +1,61 @@
+name: Publish npm Package
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing stable release tag (vX.Y.Z)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm-${{ inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+      EVENT_NAME: ${{ github.event_name }}
+      WORKFLOW_REF: ${{ github.ref }}
+    steps:
+      - name: Validate release request
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo 'Expected stable vX.Y.Z' >&2; exit 1; }
+          if [[ "$EVENT_NAME" == workflow_dispatch && "$WORKFLOW_REF" != refs/heads/main ]]; then
+            echo 'Dispatch publishing from main only' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+      - name: Require a merged release commit
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Check npm supports OIDC
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          const [major, minor, patch] = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim().split('.').map(Number);
+          if (!(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))))) throw new Error('npm 11.5.1+ required');
+          JS
+      - name: Test, pack and verify installation
+        run: npm run release:pack -- "$RUNNER_TEMP/emulator-macos-tweaks-release.tgz"
+      - name: Publish validated archive using OIDC
+        run: npm publish "$RUNNER_TEMP/emulator-macos-tweaks-release.tgz" --ignore-scripts --access public --tag latest

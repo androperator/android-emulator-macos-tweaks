@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
+import { readFileSync } from 'node:fs';
 import { apply, restore, inspect } from '../src/core.js';
 const help = `Usage: androperator-emulator-tweaks <status|apply|restore> [--accept-adhoc-signing] [--icons auto|phone] [--sdk PATH] [--backup-dir PATH] [--json]
 
@@ -23,7 +24,7 @@ try {
     'accept-adhoc-signing': { type: 'boolean' }, icons: { type: 'string' }, sdk: { type: 'string' }, 'backup-dir': { type: 'string' }, json: { type: 'boolean' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' }
   }});
   if (values.help || !positionals.length && !values.version) console.log(help);
-  else if (values.version) console.log('1.0.0');
+  else if (values.version) console.log(JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
   else {
     if (positionals.length !== 1 || !['status', 'apply', 'restore'].includes(positionals[0])) throw new Error('Expected status, apply, or restore. Use --help.');
     const command = positionals[0];

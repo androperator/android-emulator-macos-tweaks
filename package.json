@@ -9,5 +9,8 @@
   "license": "Apache-2.0",
   "publishConfig": { "access": "public" },
   "files": ["bin", "src", "assets", "NOTICE.md", "LICENSE"],
-  "scripts": { "test": "node --test", "prepack": "npm test", "build:runtime": "node scripts/build-runtime.mjs", "verify:icons": "node scripts/verify-icons.mjs" }
+  "scripts": { "test": "node --test", "prepack": "npm test", "build:runtime": "node scripts/build-runtime.mjs", "verify:icons": "node scripts/verify-icons.mjs", "release:pack": "node scripts/release-pack.mjs" },
+  "repository": { "type": "git", "url": "git+https://github.com/androperator/android-emulator-macos-tweaks.git" },
+  "homepage": "https://github.com/androperator/android-emulator-macos-tweaks#readme",
+  "bugs": { "url": "https://github.com/androperator/android-emulator-macos-tweaks/issues" }
 }

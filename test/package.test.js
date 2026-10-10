@@ -79,3 +79,10 @@ test('bundled automatic runtime hashes and arm64 library are valid without Xcode
  const { manifest } = await readRuntime(fileURLToPath(new URL('../assets/runtime', import.meta.url)), { verify: async () => {} });
  assert.equal(Object.keys(manifest.files).length, 6);
 });
+
+test('release validation refuses mismatched and nonstable tags before packing', { skip: process.platform !== 'darwin' }, () => {
+ const script=fileURLToPath(new URL('../scripts/release-pack.mjs',import.meta.url));
+ for(const tag of ['v999.0.0','v1.0.0-beta.1','v01.0.0']) {
+  assert.throws(()=>execFileSync(process.execPath,[script],{env:{...process.env,RELEASE_TAG:tag},stdio:'pipe'}),error=>error.status===1 && /Release tag must match package version/.test(error.stderr.toString()));
+ }
+});
