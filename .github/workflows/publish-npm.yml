@@ -58,4 +58,6 @@ jobs:
       - name: Test, pack and verify installation
         run: npm run release:pack -- "$RUNNER_TEMP/emulator-macos-tweaks-release.tgz"
       - name: Publish validated archive using OIDC
-        run: npm publish "$RUNNER_TEMP/emulator-macos-tweaks-release.tgz" --ignore-scripts --access public --tag latest
+        run: |
+          GITHUB_SHA="$(git rev-parse HEAD)" GITHUB_REF="refs/tags/$RELEASE_TAG" \
+            npm publish "$RUNNER_TEMP/emulator-macos-tweaks-release.tgz" --ignore-scripts --access public --tag latest

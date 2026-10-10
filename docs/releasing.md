@@ -56,7 +56,8 @@ Open a PR, complete review and wait for Node 22/24 CI checks. With explicit
 release authorization, squash-merge it, then create and push an annotated
 `vX.Y.Z` tag on that exact merged commit. The workflow checks the stable tag,
 requires its commit to be on main, validates the package and publishes the exact
-archive using OIDC. No automatic version bump or extra GitHub Release is needed.
+archive using OIDC. Publication provenance uses the checked-out tag commit,
+including manual retries dispatched from main. No automatic version bump or extra GitHub Release is needed.
 
 ## Verification and recovery
 
