@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { run, macOS } from '../src/platform.js';
 import { sha256 } from '../src/png.js';
 export function validateAVDName(name) {
-  if (!/^[A-Za-z0-9_.-]{1,255}$/.test(name ?? '') || ['.', '..'].includes(name)) throw new Error('Expected a valid AVD name');
+  if (!/^[A-Za-z0-9_.-]{1,255}$/.test(name ?? '') || ['.', '..', 'qemu-system-aarch64'].includes(name)) throw new Error('Expected a valid AVD name');
 }
 export async function createNamedPreview(rootPath, name) {
   validateAVDName(name);
