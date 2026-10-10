@@ -1,7 +1,8 @@
 # Automatic device icon prototype
 
 This experiment chooses a Dock icon separately for each emulator process. It
-supports phone, tablet, TV, watch and automotive artwork. It is separate from
+supports phone, tablet, TV, watch and automotive artwork, and uses the launch
+AVD name as the application display name shown by the Dock. It is separate from
 the stable CLI and is not included in the npm package.
 
 ## Try it without modifying your installed SDK
@@ -65,6 +66,13 @@ updates keep the selected device icon. Selection happens independently in each
 process. No background service, polling, launch wrapper environment variable or
 personal signing key is required after the startup hook is present.
 
+Dock naming uses a private LaunchServices function resolved dynamically. It
+changes only the current process's display name, using the literal `-avd` or
+`@NAME` value. If the function is unavailable or rejects the update, the emulator
+keeps its original label and the icon continues to work. This behavior is
+experimental and could stop working with a future macOS update. No application
+bundles, AVD names or global LaunchServices settings are rewritten.
+
 The supported emulator already permits local library loading through its
 entitlements. Signing preserves those entitlements. The temporary executable is
 no longer Google-signed or notarized; Gatekeeper behavior may differ. No security
@@ -81,7 +89,8 @@ The normal tests verify safe Mach-O edits and refusal of malformed tables or
 occupied padding. The explicit native check requires Xcode and a macOS graphical
 session. It compiles an AppKit probe and checks actual icon pixels across parallel
 processes for all five device types, missing metadata, foldables, custom AVD
-pointers and `-datadir`. It also verifies fallback when artwork is absent.
+pointers and `-datadir`. It also checks the macOS application display name and verifies fallback when
+artwork is absent.
 
 Phone and Wear OS AVDs have booted simultaneously through a temporary SDK copy.
 Tablet, TV and automotive selection has passed the AppKit probe, but those guest

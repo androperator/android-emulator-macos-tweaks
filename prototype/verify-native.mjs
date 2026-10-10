@@ -48,13 +48,17 @@ try {
     ['relative-custom-home', 'watch', ['-avd', 'relocated']],
     ['relative-before-absolute', 'watch', ['-avd', 'prefer-relative']],
     ['absolute-fallback', 'tv', ['-avd', 'absolute-fallback']],
-    ['missing', 'phone', []]
+    ['missing', 'phone', []],
+    ['invalid-name', 'phone', ['-avd', '../invalid']]
   );
   await Promise.all(cases.map(async ([name, variant, args]) => {
-    const { stderr } = await execute(probe, args, { env: { ...environment, EMULATOR_ICON_EXPECTED: join(root, 'icons', `${variant}.png`) }, timeout: 30000 });
+    const namedIndex = args.indexOf('-avd');
+    const expectedName = namedIndex >= 0 ? args[namedIndex + 1] : args[0]?.startsWith('@') ? args[0].slice(1) : null;
+    const naming = { EMULATOR_ICON_EXPECTED_NAME: expectedName && !expectedName.includes('/') ? expectedName : 'probe' };
+    const { stderr } = await execute(probe, args, { env: { ...environment, ...naming, EMULATOR_ICON_EXPECTED: join(root, 'icons', `${variant}.png`) }, timeout: 30000 });
     assert.ok(stderr.includes(`variant=${variant} `), `${name}: ${stderr}`);
     assert.ok(stderr.includes('application icon matches expected variant'), name);
-    console.log(`${name}: ${variant}, AppKit pixels verified`);
+    console.log(`${name}: ${variant}, AppKit pixels and application name verified`);
   }));
   // Missing artwork must preserve the caller's icon instead of crashing.
   await rm(join(root, 'icons/watch.png'));

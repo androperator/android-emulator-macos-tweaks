@@ -28,9 +28,8 @@ static NSString *Variant(NSDictionary *values) {
     return @"phone";
 }
 
-static NSString *ConfigurationPath(void) {
+static NSString *AVDName(void) {
     NSArray *arguments = NSProcessInfo.processInfo.arguments;
-    NSDictionary *environment = NSProcessInfo.processInfo.environment;
     NSString *avd = nil;
     for (NSUInteger index = 1; index < arguments.count; index++) {
         NSString *argument = arguments[index];
@@ -39,6 +38,13 @@ static NSString *ConfigurationPath(void) {
         else if ([argument hasPrefix:@"@"] && argument.length > 1) avd = [argument substringFromIndex:1];
     }
     if (!avd || [avd containsString:@"/"] || [avd isEqualToString:@".."] || [avd isEqualToString:@"."]) return nil;
+    return avd;
+}
+
+static NSString *ConfigurationPath(void) {
+    NSString *avd = AVDName();
+    if (!avd) return nil;
+    NSDictionary *environment = NSProcessInfo.processInfo.environment;
     NSString *userHome = environment[@"ANDROID_USER_HOME"] ?: [NSHomeDirectory() stringByAppendingPathComponent:@".android"];
     NSMutableArray *roots = [NSMutableArray array];
     if (environment[@"ANDROID_AVD_HOME"]) [roots addObject:environment[@"ANDROID_AVD_HOME"]];
@@ -58,6 +64,25 @@ static NSString *ConfigurationPath(void) {
         if ([NSFileManager.defaultManager fileExistsAtPath:path]) return path;
     }
     return nil;
+}
+
+static void SetDockName(void) {
+    static BOOL applied = NO;
+    if (applied) return;
+    NSString *name = AVDName();
+    if (!name) return;
+    CFBundleRef services = CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
+    if (!services) return;
+    CFTypeRef (*getASN)(void) = CFBundleGetFunctionPointerForName(services, CFSTR("_LSGetCurrentApplicationASN"));
+    OSStatus (*setName)(int, CFTypeRef, CFStringRef, CFTypeRef, CFDictionaryRef *) = CFBundleGetFunctionPointerForName(services, CFSTR("_LSSetApplicationInformationItem"));
+    const CFStringRef *key = CFBundleGetDataPointerForName(services, CFSTR("_kLSDisplayNameKey"));
+    if (!getASN || !setName || !key || !*key) return;
+    // The current ASN is borrowed, not owned by this helper.
+    CFTypeRef asn = getASN();
+    if (!asn) return;
+    // Private LaunchServices API, also used by WebKit. Missing symbols leave the name unchanged.
+    OSStatus status = setName(-2, asn, *key, (__bridge CFStringRef)name, NULL);
+    if (!status) { applied = YES; fprintf(stderr, "[emulator-icon] dock-name=%s\n", name.UTF8String); }
 }
 
 static NSImage *SelectedIcon(void) {
@@ -87,6 +112,7 @@ static NSImage *SelectedIcon(void) {
     dispatch_async(dispatch_get_main_queue(), ^{ if (NSApp && SelectedIcon()) [NSApp setApplicationIconImage:SelectedIcon()]; });
 }
 - (void)emulatorIcon_setApplicationIconImage:(NSImage *)image {
+    SetDockName();
     [self emulatorIcon_setApplicationIconImage:SelectedIcon() ?: image];
 }
 @end

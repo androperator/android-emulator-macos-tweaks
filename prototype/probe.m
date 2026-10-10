@@ -15,7 +15,19 @@ int main(int argc, const char *argv[]) {
         NSData *reference = application.applicationIconImage.TIFFRepresentation;
         [application setApplicationIconImage:[[NSImage alloc] initWithSize:NSMakeSize(1, 1)]];
         if (![application.applicationIconImage.TIFFRepresentation isEqual:reference]) return 1;
-        fprintf(stderr, "[emulator-icon-probe] application icon matches expected variant\n");
+        const char *expectedName = getenv("EMULATOR_ICON_EXPECTED_NAME");
+        if (expectedName) {
+            NSString *name = [NSString stringWithUTF8String:expectedName];
+            NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:2];
+            while (![NSRunningApplication.currentApplication.localizedName isEqualToString:name] && deadline.timeIntervalSinceNow > 0) {
+                [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+            }
+            if (![NSRunningApplication.currentApplication.localizedName isEqualToString:name]) {
+                fprintf(stderr, "expected name=%s actual=%s\n", expectedName, (NSRunningApplication.currentApplication.localizedName ?: @"unavailable").UTF8String);
+                return 3;
+            }
+        }
+        fprintf(stderr, "[emulator-icon-probe] application icon matches expected variant, application name=%s\n", (NSRunningApplication.currentApplication.localizedName ?: @"unavailable").UTF8String);
         return 0;
     }
 }
