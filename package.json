@@ -1,0 +1,13 @@
+{
+  "name": "@androperator/emulator-icon-macos",
+  "version": "0.1.0",
+  "description": "Reversible native macOS Dock icons for supported Android Emulator builds",
+  "type": "module",
+  "bin": { "emulator-icon-macos": "bin/emulator-icon-macos.js" },
+  "engines": { "node": ">=22" },
+  "os": ["darwin"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" },
+  "files": ["bin", "src", "assets", "NOTICE.md", "LICENSE"],
+  "scripts": { "test": "node --test", "prepack": "npm test" }
+}
