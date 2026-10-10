@@ -1,6 +1,6 @@
 {
   "name": "@androperator/emulator-macos-tweaks",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Reversible macOS tweaks for supported Android Emulator builds",
   "type": "module",
   "bin": {

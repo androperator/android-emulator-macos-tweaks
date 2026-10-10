@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.2
 
 - Apply AVD Dock and Cmd-Tab labels to standard SDK launches by default, with `--names off` for icons only. Preserve launch arguments and environment, legacy backups, exact restore and safe per-AVD caches.
 
