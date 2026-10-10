@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Read the CLI version from package metadata so version output stays synchronized.
+- Add repository, homepage and issue links to the npm package metadata.
+- Add validated GitHub Trusted Publishing, release documentation and an agent release skill for future releases.
+
 ## 1.0.0
 
 - Support automatic per-AVD phone, tablet, TV, watch and automotive icons by default, with a bundled native helper and `--icons phone` fallback mode. Preserve legacy backups, add runtime generations and health reporting, and keep AVD naming experimental.

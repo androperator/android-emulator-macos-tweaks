@@ -1,13 +1,41 @@
 {
   "name": "@androperator/emulator-macos-tweaks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Reversible macOS tweaks for supported Android Emulator builds",
   "type": "module",
-  "bin": { "androperator-emulator-tweaks": "bin/androperator-emulator-tweaks.js" },
-  "engines": { "node": ">=22" },
-  "os": ["darwin"],
+  "bin": {
+    "androperator-emulator-tweaks": "bin/androperator-emulator-tweaks.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "os": [
+    "darwin"
+  ],
   "license": "Apache-2.0",
-  "publishConfig": { "access": "public" },
-  "files": ["bin", "src", "assets", "NOTICE.md", "LICENSE"],
-  "scripts": { "test": "node --test", "prepack": "npm test", "build:runtime": "node scripts/build-runtime.mjs", "verify:icons": "node scripts/verify-icons.mjs" }
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin",
+    "src",
+    "assets",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "prepack": "npm test",
+    "build:runtime": "node scripts/build-runtime.mjs",
+    "verify:icons": "node scripts/verify-icons.mjs",
+    "release:pack": "node scripts/release-pack.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/androperator/android-emulator-macos-tweaks.git"
+  },
+  "homepage": "https://github.com/androperator/android-emulator-macos-tweaks#readme",
+  "bugs": {
+    "url": "https://github.com/androperator/android-emulator-macos-tweaks/issues"
+  }
 }
