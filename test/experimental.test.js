@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addIconHelper } from '../prototype/macho.mjs';
+import { addIconHelper } from '../experimental/macho.mjs';
 function executable() {
   const bytes = Buffer.alloc(1024);
   bytes.writeUInt32LE(0xfeedfacf, 0);
@@ -15,7 +15,7 @@ function executable() {
   bytes.fill(0xa5, 512);
   return bytes;
 }
-test('prototype adds a weak helper dependency without moving sections or changing other bytes', () => {
+test('experimental patcher adds a weak helper dependency without moving sections or changing other bytes', () => {
   const before = executable();
   const after = addIconHelper(before, '/tmp/device icon/helper.dylib');
   assert.equal(after.length, before.length);
@@ -27,7 +27,7 @@ test('prototype adds a weak helper dependency without moving sections or changin
   assert.deepEqual(after.subarray(184 + after.readUInt32LE(188)), before.subarray(184 + after.readUInt32LE(188)));
   assert.throws(() => addIconHelper(after, '/tmp/device icon/helper.dylib'), /already installed/);
 });
-test('prototype refuses invalid architecture, malformed tables, relative paths and occupied padding', () => {
+test('experimental patcher refuses invalid architecture, malformed tables, relative paths and occupied padding', () => {
   assert.throws(() => addIconHelper(Buffer.alloc(16), '/tmp/helper'), /Mach-O/);
   assert.throws(() => addIconHelper(executable(), 'helper'), /absolute/);
   assert.throws(() => addIconHelper(executable(), '/tmp/he\0lper'), /absolute/);
@@ -43,7 +43,7 @@ test('prototype refuses invalid architecture, malformed tables, relative paths a
 
 // Named preview executables must stay within the temporary backend directory.
 test('preview AVD names cannot introduce paths or invalid executable names', async () => {
-  const { validateAVDName } = await import('../prototype/launch-preview.mjs');
+  const { validateAVDName } = await import('../experimental/launch-preview.mjs');
   for (const name of ['Pixel_9', 'EmulatorIcon_Tablet_Preview', 'watch-1.0']) validateAVDName(name);
   for (const name of ['', '.', '..', 'qemu-system-aarch64', 'QEMU-system-aarch64', 'QEMU-SYSTEM-AARCH64', '../phone', 'phone/device', 'phone with spaces', 'a'.repeat(256)]) assert.throws(() => validateAVDName(name), /valid AVD/);
 });

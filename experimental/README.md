@@ -1,4 +1,4 @@
-# Automatic device icon prototype
+# Experimental device icons and Dock names
 
 This experiment chooses a Dock icon separately for each emulator process. It
 supports phone, tablet, TV, watch and automotive artwork, and offers named preview launchers for Dock and task-switcher label experiments. It is separate from
@@ -11,7 +11,7 @@ supported emulator build. The source executable may be Google's original or a
 verified patch managed by the stable CLI.
 
 ```sh
-node prototype/prepare.mjs --accept-adhoc-signing
+node experimental/prepare.mjs --accept-adhoc-signing
 ```
 
 The command prints a temporary directory and `launcher` path. It copies the
@@ -68,7 +68,7 @@ personal signing key is required after the startup hook is present.
 For Dock and task-switcher labels, create a separate preview launcher for each AVD:
 
 ```sh
-node prototype/launch-preview.mjs /printed/temporary/path Pixel_9
+node experimental/launch-preview.mjs /printed/temporary/path Pixel_9
 ```
 
 Use its printed launcher with the same AVD name and `-read-only -no-snapshot`.
@@ -78,7 +78,7 @@ The forwarding executable preserves the standard launcher's arguments and full
 environment. Directly launching the renamed backend without that environment can
 fail to load its graphics libraries. The named copy retains the original patched
 bytes and signature. Close the preview and remove its printed temporary directory
-to undo it; keep its base prototype while using the named launcher.
+to undo it; keep its base experiment while using the named launcher.
 
 The previous private LaunchServices display-name update changed the process record
 but did not change the actual Dock tooltip or task-switcher label. It has been
@@ -95,7 +95,7 @@ settings are changed.
 
 ```sh
 npm test
-node prototype/verify-native.mjs
+node experimental/verify-native.mjs
 ```
 
 The normal tests verify safe Mach-O edits and refusal of malformed tables or
@@ -115,4 +115,21 @@ step requiring explicit approval and a production backup/restore design.
 The helper path is absolute and belongs to the temporary directory. Keep that
 directory while using its launcher. Do not distribute this temporary executable,
 move it into your real SDK or use the stable CLI to manage it. Xcode is needed to
-build the prototype; the stable package continues to require no Xcode.
+build the experiment; the stable package continues to require no Xcode.
+
+## Folder contents and shared artwork
+
+- `prepare.mjs` prepares a temporary SDK copy and builds its native icon helper.
+- `icon-hook.m` selects an icon from AVD metadata and keeps it through Qt updates.
+- `macho.mjs` adds the verified weak dependency to the copied executable.
+- `generate-icons.mjs` renders the experimental device variants with Apple tools.
+- `launch-preview.mjs` and `launch-wrapper.c` create per-AVD named preview launchers.
+- `probe.m` and `verify-native.mjs` verify AppKit pixels and launcher behavior.
+
+Shared phone artwork and its editable source live in [`../assets/`](../assets/).
+The packaged CLI and these experiments both use them. Generated tablet, TV,
+watch and automotive artwork lives only in each temporary experiment directory.
+This folder is excluded from the npm package.
+
+Temporary manifests retain the name `prototype.json` so existing preview
+folders remain usable with the moved scripts.

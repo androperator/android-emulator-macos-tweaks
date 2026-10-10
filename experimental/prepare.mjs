@@ -9,8 +9,8 @@ import { macOS, run } from '../src/platform.js';
 import { generateIcons } from './generate-icons.mjs';
 import { addIconHelper } from './macho.mjs';
 const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
-const usage = `Prototype automatic device icons in a temporary SDK copy.
-Usage: node prototype/prepare.mjs --accept-adhoc-signing [--sdk PATH]
+const usage = `Experimental automatic device icons in a temporary SDK copy.
+Usage: node experimental/prepare.mjs --accept-adhoc-signing [--sdk PATH]
 Requires Apple Silicon macOS, Xcode, and a supported original or CLI-managed emulator.
 Only the temporary executable is modified and signed locally; no developer key is used.
 The installed SDK and its existing backups are unchanged. Gatekeeper behavior may differ.
@@ -60,7 +60,7 @@ async function main() {
   await macOS.copy(target, original);
   if (sha256(await readFile(original)) !== context.targetHash) throw new Error('Emulator changed while preparing copy');
   const helper = join(root, 'emulator-icon-helper.dylib');
-  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'prototype/icon-hook.m'), '-o', helper]);
+  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'experimental/icon-hook.m'), '-o', helper]);
   await run('/usr/bin/codesign', ['--force', '--sign', '-', helper]);
   await macOS.verify(helper);
   await generateIcons(sourceRoot, root);
@@ -71,4 +71,4 @@ async function main() {
   await writeFile(join(root, 'prototype.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 });
   console.log(JSON.stringify(result, null, 2));
 }
-main().catch(error => { console.error(`emulator-icon prototype: ${error.message}`); process.exitCode = 1; });
+main().catch(error => { console.error(`androperator-emulator-tweaks experimental: ${error.message}`); process.exitCode = 1; });

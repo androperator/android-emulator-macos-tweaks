@@ -12,9 +12,9 @@ const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
 const root = await mkdtemp(join(tmpdir(), 'emulator-icon-native-tests-'));
 try {
   const helper = join(root, 'emulator-icon-helper.dylib'), probe = join(root, 'probe');
-  await run('/usr/bin/xcrun', ['clang', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'prototype/icon-hook.m'), '-o', helper]);
+  await run('/usr/bin/xcrun', ['clang', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'experimental/icon-hook.m'), '-o', helper]);
   await run('/usr/bin/codesign', ['--force', '--sign', '-', helper]);
-  await run('/usr/bin/xcrun', ['clang', '-fobjc-arc', '-framework', 'AppKit', join(sourceRoot, 'prototype/probe.m'), '-o', probe]);
+  await run('/usr/bin/xcrun', ['clang', '-fobjc-arc', '-framework', 'AppKit', join(sourceRoot, 'experimental/probe.m'), '-o', probe]);
   await generateIcons(sourceRoot, root);
   const avdHome = join(root, 'avd'); await mkdir(avdHome);
   const fixtures = [
@@ -68,7 +68,7 @@ try {
     console.log(`${name}: ${variant}, AppKit pixels and application name verified`);
   }));
   const wrapper = join(namedDirectory, 'wrapper');
-  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-DAVD_NAME="watch"', join(sourceRoot, 'prototype/launch-wrapper.c'), '-o', wrapper]);
+  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-DAVD_NAME="watch"', join(sourceRoot, 'experimental/launch-wrapper.c'), '-o', wrapper]);
   await run('/usr/bin/codesign', ['--force', '--sign', '-', wrapper]);
   const wrapperEnvironment = { ...environment, EMULATOR_ICON_EXPECTED_NAME: 'watch', EMULATOR_ICON_EXPECTED: join(root, 'icons/watch.png') };
   await execute(wrapper, ['-avd', 'watch'], { env: wrapperEnvironment, timeout: 30000 });

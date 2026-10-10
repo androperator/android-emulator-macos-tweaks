@@ -1,6 +1,6 @@
 # @androperator/emulator-macos-tweaks
 
-Small, reversible macOS tweaks for the standalone Android™ Emulator. The packaged CLI applies native Dock artwork with verified backups and exact restoration. An isolated prototype also explores per-device icons and AVD names in the Dock.
+Small, reversible macOS tweaks for the standalone Android™ Emulator. The packaged CLI applies native Dock artwork with verified backups and exact restoration. Experimental tooling also explores per-device icons and AVD names in the Dock.
 
 ![macOS emulator icon](assets/256.png)
 
@@ -66,7 +66,7 @@ If you installed the prototype from a previous experiment, first run its own res
 
 ## Experimental per-device icons and names
 
-An isolated [automatic icon prototype](https://github.com/chrislacy/android-emulator-macos-tweaks/blob/feat/native-emulator-icon/prototype/README.md) can select phone,
+An isolated [experimental device customization tools](https://github.com/chrislacy/android-emulator-macos-tweaks/blob/feat/native-emulator-icon/experimental/README.md) can select phone,
 tablet, TV, watch and automotive icons for each process in a temporary SDK copy.
 It also provides optional preview launchers named after their AVDs. It requires Xcode and does not change the installed emulator or the packaged CLI.
 
