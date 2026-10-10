@@ -5,6 +5,7 @@
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         NSApplication *application = [NSApplication sharedApplication];
+        if (getenv("EMULATOR_ICON_NO_HELPER")) return [application respondsToSelector:@selector(emulatorIcon_setApplicationIconImage:)] ? 1 : 0;
         const char *expectedPath = getenv("EMULATOR_ICON_EXPECTED");
         BOOL fallback = getenv("EMULATOR_ICON_FALLBACK") != NULL;
         if (!expectedPath && !fallback) return 2;

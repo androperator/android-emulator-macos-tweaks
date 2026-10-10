@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addIconHelper } from '../experimental/macho.mjs';
+import { addIconHelper } from '../src/macho.js';
 function executable() {
   const bytes = Buffer.alloc(1024);
   bytes.writeUInt32LE(0xfeedfacf, 0);

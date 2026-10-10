@@ -6,15 +6,15 @@ import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { run } from '../src/platform.js';
-import { generateIcons } from './generate-icons.mjs';
+import { generateIcons } from '../scripts/generate-icons.mjs';
 const execute = promisify(execFile);
 const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
 const root = await mkdtemp(join(tmpdir(), 'emulator-icon-native-tests-'));
 try {
   const helper = join(root, 'emulator-icon-helper.dylib'), probe = join(root, 'probe');
-  await run('/usr/bin/xcrun', ['clang', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'experimental/icon-hook.m'), '-o', helper]);
+  await run('/usr/bin/xcrun', ['clang', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'native/icon-hook.m'), '-o', helper]);
   await run('/usr/bin/codesign', ['--force', '--sign', '-', helper]);
-  await run('/usr/bin/xcrun', ['clang', '-fobjc-arc', '-framework', 'AppKit', join(sourceRoot, 'experimental/probe.m'), '-o', probe]);
+  await run('/usr/bin/xcrun', ['clang', '-fobjc-arc', '-framework', 'AppKit', join(sourceRoot, 'native/probe.m'), '-o', probe]);
   await generateIcons(sourceRoot, root);
   const avdHome = join(root, 'avd'); await mkdir(avdHome);
   const fixtures = [

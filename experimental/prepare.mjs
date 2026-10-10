@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { inspect } from '../src/core.js';
 import { sha256 } from '../src/png.js';
 import { macOS, run } from '../src/platform.js';
-import { generateIcons } from './generate-icons.mjs';
-import { addIconHelper } from './macho.mjs';
+import { generateIcons } from '../scripts/generate-icons.mjs';
+import { addIconHelper } from '../src/macho.js';
 const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
 const usage = `Experimental automatic device icons in a temporary SDK copy.
 Usage: node experimental/prepare.mjs --accept-adhoc-signing [--sdk PATH]
@@ -28,6 +28,7 @@ async function main() {
   if (!accepted) throw new Error(`--accept-adhoc-signing is required. No files changed.\n${usage}`);
   if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('Requires Apple Silicon macOS');
   const context = await inspect({ sdk });
+  const sourceExecutable = context.state === 'patched' ? join(context.receipt.directory, 'original') : context.target;
   const profiles = JSON.parse(await readFile(join(sourceRoot, 'src/profiles.json')));
   let vendorHash = context.targetHash;
   if (context.state === 'patched' && context.receipt) {
@@ -46,7 +47,7 @@ async function main() {
       const name = relative ? `${relative}/${entry.name}` : entry.name;
       const original = join(from, entry.name), output = join(to, entry.name);
       if (['emulator', 'emulator/qemu', 'emulator/qemu/darwin-aarch64'].includes(name) && entry.isDirectory()) await copyTree(original, output, name);
-      else if (['emulator/emulator', 'emulator/qemu/darwin-aarch64/qemu-system-aarch64'].includes(name)) await macOS.copy(original, output);
+      else if (['emulator/emulator', 'emulator/qemu/darwin-aarch64/qemu-system-aarch64'].includes(name)) await macOS.copy(name === 'emulator/qemu/darwin-aarch64/qemu-system-aarch64' ? sourceExecutable : original, output);
       else await symlink(original, output);
     }
   }
@@ -58,16 +59,16 @@ async function main() {
   const target = join(sdkCopy, 'emulator/qemu/darwin-aarch64/qemu-system-aarch64');
   const original = join(root, 'original');
   await macOS.copy(target, original);
-  if (sha256(await readFile(original)) !== context.targetHash) throw new Error('Emulator changed while preparing copy');
+  if (sha256(await readFile(original)) !== vendorHash) throw new Error('Emulator changed while preparing copy');
   const helper = join(root, 'emulator-icon-helper.dylib');
-  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'experimental/icon-hook.m'), '-o', helper]);
+  await run('/usr/bin/xcrun', ['clang', '-arch', 'arm64', '-dynamiclib', '-fobjc-arc', '-fblocks', '-framework', 'AppKit', '-mmacosx-version-min=14.0', join(sourceRoot, 'native/icon-hook.m'), '-o', helper]);
   await run('/usr/bin/codesign', ['--force', '--sign', '-', helper]);
   await macOS.verify(helper);
   await generateIcons(sourceRoot, root);
   await writeFile(target, addIconHelper(await readFile(original), helper));
   await macOS.sign(original, target, root);
   if (sha256(await readFile(context.target)) !== context.targetHash) throw new Error('Installed SDK changed externally during preparation');
-  const result = { root, launcher: join(sdkCopy, 'emulator/emulator'), executable: target, helper, originalHash: context.targetHash, patchedHash: sha256(await readFile(target)), installedSDKUnchanged: true };
+  const result = { root, launcher: join(sdkCopy, 'emulator/emulator'), executable: target, helper, originalHash: vendorHash, patchedHash: sha256(await readFile(target)), installedSDKUnchanged: true };
   await writeFile(join(root, 'prototype.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 });
   console.log(JSON.stringify(result, null, 2));
 }

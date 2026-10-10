@@ -3,12 +3,13 @@
 Read [README.md](README.md) before changing this folder.
 
 These tools explore per-device icons and AVD names in temporary SDK copies.
-They are excluded from the npm package and are separate from the supported
+Automatic icons are supported in the main CLI; AVD naming remains experimental.
+These preview tools are excluded from the npm package and are separate from the supported
 CLI in `../src/` and `../bin/`.
 
 - Keep experiments confined to temporary copies. Do not install hooks or named
   launchers into the real SDK without explicit user authorization.
-- Keep shared artwork in `../assets/`; render experimental variants into the
+- Keep shared artwork in `../assets/`; keep bundled device variants in `../assets/runtime/` and render preview variants into the
   temporary output directory. Do not duplicate the packaged phone artwork here.
 - Preserve `prototype.json` compatibility for existing temporary previews.
 - Run `npm test` for imports, Mach-O checks and name validation. Run

@@ -61,3 +61,19 @@ test('help and no-argument usage explain the signing acceptance flag',()=>{
   assert.match(output,/Gatekeeper/);
  }
 });
+
+test('help documents automatic icon defaults and only apply accepts valid icon modes', () => {
+ const cli = fileURLToPath(new URL('../bin/androperator-emulator-tweaks.js', import.meta.url));
+ const help = execFileSync(process.execPath, [cli, '--help'], { encoding: 'utf8' });
+ assert.match(help, /auto \(default\).*phone, tablet, TV, watch or automotive/);
+ assert.match(help, /AVD names remain experimental/);
+ for (const args of [['apply', '--icons', 'tv'], ['status', '--icons', 'auto'], ['restore', '--icons', 'phone']]) {
+  assert.throws(() => execFileSync(process.execPath, [cli, ...args], { stdio: 'pipe' }), error => error.status === 1 && /--icons auto\|phone/.test(error.stderr.toString()));
+ }
+});
+
+test('bundled automatic runtime hashes and arm64 library are valid without Xcode', async () => {
+ const { readRuntime } = await import('../src/runtime.js');
+ const { manifest } = await readRuntime(fileURLToPath(new URL('../assets/runtime', import.meta.url)), { verify: async () => {} });
+ assert.equal(Object.keys(manifest.files).length, 6);
+});

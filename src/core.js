@@ -5,6 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { sha256, patchImages } from './png.js';
 import { macOS } from './platform.js';
+import { addIconHelper } from './macho.js';
+import { readRuntime, copyRuntime, verifyRuntime, runtimeHash } from './runtime.js';
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const bundledProfiles = JSON.parse(await readFile(new URL('./profiles.json', import.meta.url)));
 const hashFile = async file => sha256(await readFile(file));
@@ -54,12 +56,14 @@ export async function inspect({ sdk: explicit, backupDir, profiles = bundledProf
   let receipts = [];
   try {
     for (const name of await readdir(folder)) {
-      if (!/^[a-f0-9]{64}$/.test(name)) continue;
+      if (!/^[a-f0-9]{64}(?:-automatic-[a-f0-9]{64})?$/.test(name)) continue;
       const receiptPath = join(folder, name, 'receipt.json');
       try {
         if (!(await lstat(receiptPath)).isFile()) throw new Error('Invalid backup receipt');
         const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
-        if (receipt.schema !== 1 || receipt.target !== target || receipt.originalHash !== name || !/^[a-f0-9]{64}$/.test(receipt.patchedHash ?? '') || !['prepared','applied','restored'].includes(receipt.state)) throw new Error('Invalid backup receipt');
+        if (![1, 2].includes(receipt.schema) || receipt.target !== target || receipt.originalHash !== name.slice(0, 64) || !/^[a-f0-9]{64}$/.test(receipt.patchedHash ?? '') || !['prepared','applied','restored'].includes(receipt.state)) throw new Error('Invalid backup receipt');
+        if (receipt.schema === 1 && name !== receipt.originalHash) throw new Error('Invalid legacy backup directory');
+        if (receipt.schema === 2 && (receipt.icons !== 'auto' || name !== `${receipt.originalHash}-automatic-${runtimeHash(receipt.runtime)}`)) throw new Error('Invalid automatic backup directory');
         receipts.push({ ...receipt, directory: join(folder, name) });
       } catch (error) {
         throw new Error(`Cannot read backup receipt ${receiptPath}: ${error.message}`);
@@ -69,7 +73,13 @@ export async function inspect({ sdk: explicit, backupDir, profiles = bundledProf
   const receipt = receipts.find(record => record.patchedHash === targetHash) ?? receipts.find(record => record.originalHash === targetHash);
   const profile = profiles.find(item => item.revision === revision && item.sha256 === targetHash);
   const state = receipt?.patchedHash === targetHash ? 'patched' : profile ? 'original' : 'unsupported';
-  return { sdk, revision, target, targetHash, storage, folder, targetId, state, receipt, profile, adapter, mode: info.mode & 0o777, receipts };
+  let runtimeHealthy = null;
+  if (receipt?.schema === 2 && state === 'patched') {
+    try { await verifyRuntime(join(receipt.directory, 'runtime'), receipt.runtime); runtimeHealthy = true; }
+    catch { runtimeHealthy = false; }
+  }
+  const icons = state === 'patched' ? (receipt.schema === 2 ? 'auto' : 'phone') : null;
+  return { icons, runtimeHealthy, sdk, revision, target, targetHash, storage, folder, targetId, state, receipt, profile, adapter, mode: info.mode & 0o777, receipts };
 }
 
 async function withLock(context, operation) {
@@ -102,45 +112,64 @@ async function replace(context, source, expectedHash) {
 }
 
 export async function apply(options = {}) {
+  const icons = options.icons ?? 'auto';
+  if (!['auto', 'phone'].includes(icons)) throw new Error('Expected --icons auto or phone');
   const context = await inspect(options);
-  if (context.state === 'patched') return { ...context, changed: false };
-  if (!context.profile) throw new Error(`Unsupported emulator ${context.revision ?? 'version'} (${context.targetHash}). No files changed. See supported builds in README.`);
+  const runtimeDirectory = options.runtimeDir ?? join(packageRoot, 'assets/runtime');
+  const originalHash = context.state === 'patched' ? context.receipt.originalHash : context.targetHash;
+  const profile = (options.profiles ?? bundledProfiles).find(item => item.revision === context.revision && item.sha256 === originalHash);
+  if (!profile) throw new Error(`Unsupported emulator ${context.revision ?? 'version'} (${context.targetHash}). No files changed. See supported builds in README.`);
+  const bundle = icons === 'auto' ? await readRuntime(runtimeDirectory, context.adapter) : null;
+  const directory = join(context.folder, icons === 'auto' ? `${originalHash}-automatic-${bundle.hash}` : originalHash);
   return withLock(context, async () => {
     await context.adapter.verify(context.target);
-    const original = await readFile(context.target);
-    const replacements = new Map();
-    for (const slot of context.profile.slots) replacements.set(slot.size, await readFile(join(options.assetsDir ?? join(packageRoot, 'assets'), `${slot.size}.png`)));
-    const { patched, slots } = patchImages(original, context.profile, replacements);
-    const directory = join(context.folder, context.targetHash);
-    await mkdir(context.folder, { recursive: true, mode: 0o700 });
-    if (context.receipt) {
-      if (await hashFile(join(directory, 'original')) !== context.targetHash) throw new Error('Original backup is corrupt; refusing to replace it');
-      if (await hashFile(join(directory, 'patched')) !== context.receipt.patchedHash) throw new Error('Patched backup is corrupt');
-      await replace(context, join(directory, 'patched'), context.receipt.patchedHash);
-      await atomicJSON(join(directory, 'receipt.json'), { ...context.receipt, directory: undefined, state: 'applied' });
-      return { ...context, state: 'patched', changed: true, backup: directory };
+    const existing = context.receipts.find(record => record.directory === directory);
+    if (existing) {
+      if (await hashFile(join(directory, 'original')) !== originalHash) throw new Error('Original backup is corrupt; refusing to replace it');
+      if (await hashFile(join(directory, 'patched')) !== existing.patchedHash) throw new Error('Patched backup is corrupt');
+      if (existing.schema === 2) {
+        await verifyRuntime(join(directory, 'runtime'), existing.runtime);
+        await context.adapter.verify(join(directory, 'runtime/helper.dylib'));
+      }
+      if (context.targetHash === existing.patchedHash) return { ...context, changed: false };
+      await replace(context, join(directory, 'patched'), existing.patchedHash);
+      await atomicJSON(join(directory, 'receipt.json'), { ...existing, directory: undefined, state: 'applied' });
+      return { ...context, state: 'patched', icons, runtimeHealthy: bundle ? true : null, changed: true, backup: directory };
     }
-    // Do not reuse an incomplete backup directory or overwrite any existing backup.
+    // Always derive a new patch from the verified original, including legacy upgrades.
+    const originalSource = context.state === 'patched' ? join(context.receipt.directory, 'original') : context.target;
+    if (await hashFile(originalSource) !== originalHash) throw new Error('Original backup is corrupt');
+    await context.adapter.verify(originalSource);
+    const original = await readFile(originalSource);
+    const replacements = new Map();
+    for (const slot of profile.slots) replacements.set(slot.size, await readFile(join(options.assetsDir ?? join(packageRoot, 'assets'), `${slot.size}.png`)));
+    const { patched, slots } = patchImages(original, profile, replacements);
+    await mkdir(context.folder, { recursive: true, mode: 0o700 });
     const preparation = join(context.folder, `.prepare-${randomUUID()}`);
     await mkdir(preparation, { mode: 0o700 });
     const backup = join(preparation, 'original');
     const candidate = join(preparation, 'patched');
-    await context.adapter.copy(context.target, backup);
-    if (await hashFile(backup) !== context.targetHash) throw new Error('Original backup hash mismatch');
+    await context.adapter.copy(originalSource, backup);
+    if (await hashFile(backup) !== originalHash) throw new Error('Original backup hash mismatch');
     await context.adapter.copy(backup, candidate);
-    await writeFile(candidate, patched);
+    if (bundle) await copyRuntime(runtimeDirectory, join(preparation, 'runtime'), bundle.manifest);
+    await writeFile(candidate, bundle ? addIconHelper(patched, join(directory, 'runtime/helper.dylib')) : patched);
     await context.adapter.sign(backup, candidate, preparation);
     const patchedHash = await hashFile(candidate);
-    const receipt = { schema: 1, target: context.target, revision: context.revision, build: context.profile.build, originalHash: context.targetHash, patchedHash, state: 'prepared', created: new Date().toISOString(), slots };
+    const receipt = { schema: bundle ? 2 : 1, target: context.target, revision: context.revision, build: profile.build, originalHash, patchedHash, state: 'prepared', created: new Date().toISOString(), slots, ...(bundle ? { icons, runtime: bundle.manifest } : {}) };
     for (const file of [backup, candidate]) {
       const handle = await open(file, 'r');
       try { await handle.sync(); } finally { await handle.close(); }
     }
     await atomicJSON(join(preparation, 'receipt.json'), receipt);
     await rename(preparation, directory);
+    if (bundle) {
+      await verifyRuntime(join(directory, 'runtime'), bundle.manifest);
+      await context.adapter.verify(join(directory, 'runtime/helper.dylib'));
+    }
     await replace(context, join(directory, 'patched'), patchedHash);
     await atomicJSON(join(directory, 'receipt.json'), { ...receipt, state: 'applied' });
-    return { ...context, state: 'patched', changed: true, backup: directory };
+    return { ...context, state: 'patched', icons, runtimeHealthy: bundle ? true : null, changed: true, backup: directory };
   });
 }
 
@@ -153,6 +182,6 @@ export async function restore(options = {}) {
     if (await hashFile(backup) !== context.receipt.originalHash) throw new Error('Original backup is corrupt; nothing restored');
     await replace(context, backup, context.receipt.originalHash);
     await atomicJSON(join(context.receipt.directory, 'receipt.json'), { ...context.receipt, directory: undefined, state: 'restored' });
-    return { ...context, state: 'original', changed: true, backup: context.receipt.directory };
+    return { ...context, state: 'original', icons: null, runtimeHealthy: null, changed: true, backup: context.receipt.directory };
   });
 }

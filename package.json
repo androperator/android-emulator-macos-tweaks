@@ -9,5 +9,5 @@
   "license": "MIT",
   "publishConfig": { "access": "public" },
   "files": ["bin", "src", "assets", "NOTICE.md", "LICENSE"],
-  "scripts": { "test": "node --test", "prepack": "npm test" }
+  "scripts": { "test": "node --test", "prepack": "npm test", "build:runtime": "node scripts/build-runtime.mjs", "verify:icons": "node scripts/verify-icons.mjs" }
 }
