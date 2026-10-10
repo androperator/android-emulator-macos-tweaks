@@ -109,3 +109,5 @@ Code is licensed under [Apache 2.0](LICENSE). See [LICENSE](LICENSE) and [NOTICE
 Android is a trademark of Google LLC. This project is not affiliated with or endorsed by Google or Apple.
 
 Written by clankers. Engineered by [@chrismlacy](https://x.com/chrismlacy).
+
+Copyright (C) 2026 Action Launcher Pty Ltd
