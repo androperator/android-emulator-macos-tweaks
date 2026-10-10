@@ -64,6 +64,12 @@ An interrupted run after signing has a prepared receipt and can recover on the n
 
 If you installed the prototype from a previous experiment, first run its own restore command. The CLI refuses to adopt an unrecognized pre-existing patch, even if it looks identical. Then run this CLI's `apply --accept-adhoc-signing` to create a managed backup.
 
+## Experimental per-device icons
+
+An isolated [automatic icon prototype](https://github.com/chrislacy/emulator-icon-macos/blob/feat/native-emulator-icon/prototype/README.md) can select phone,
+tablet, TV, watch and automotive icons for each process in a temporary SDK copy.
+It requires Xcode and does not change the installed emulator or the stable CLI.
+
 ## Development and release
 
 ```sh
