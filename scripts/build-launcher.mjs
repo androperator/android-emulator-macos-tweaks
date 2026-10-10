@@ -1,0 +1,12 @@
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {run} from '../src/platform.js';
+import {sha256} from '../src/png.js';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const directory=join(root,'assets/launcher');await mkdir(directory,{recursive:true});
+const target=join(directory,'launcher');
+await run('/usr/bin/xcrun',['clang','-arch','arm64','-fobjc-arc','-framework','Foundation','-mmacosx-version-min=14.0',join(root,'native/avd-launcher.m'),'-o',target]);
+await run('/usr/bin/codesign',['--force','--sign','-',target]);
+await writeFile(join(directory,'manifest.json'),JSON.stringify({schema:1,architecture:'arm64',sha256:sha256(await readFile(target))},null,2)+'\n');
+console.log('Built packaged arm64 AVD dispatcher');

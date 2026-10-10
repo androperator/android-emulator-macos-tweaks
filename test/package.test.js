@@ -68,7 +68,7 @@ test('help documents automatic icon defaults and only apply accepts valid icon m
  const cli = fileURLToPath(new URL('../bin/androperator-emulator-tweaks.js', import.meta.url));
  const help = execFileSync(process.execPath, [cli, '--help'], { encoding: 'utf8' });
  assert.match(help, /auto \(default\).*phone, tablet, TV, watch or automotive/);
- assert.match(help, /AVD names remain experimental/);
+ assert.match(help, /Names: avd \(default\)/);
  for (const args of [['apply', '--icons', 'tv'], ['status', '--icons', 'auto'], ['restore', '--icons', 'phone']]) {
   assert.throws(() => execFileSync(process.execPath, [cli, ...args], { stdio: 'pipe' }), error => error.status === 1 && /--icons auto\|phone/.test(error.stderr.toString()));
  }

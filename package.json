@@ -28,7 +28,9 @@
     "prepack": "npm test",
     "build:runtime": "node scripts/build-runtime.mjs",
     "verify:icons": "node scripts/verify-icons.mjs",
-    "release:pack": "node scripts/release-pack.mjs"
+    "release:pack": "node scripts/release-pack.mjs",
+    "build:launcher": "node scripts/build-launcher.mjs",
+    "verify:names": "node scripts/verify-names.mjs"
   },
   "repository": {
     "type": "git",

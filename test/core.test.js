@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, copyFile, chmod, rm, stat, realpath, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, copyFile, chmod, rm, stat, lstat, realpath, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateSync } from 'node:zlib';
@@ -34,7 +34,7 @@ async function fixture(t) {
   const target=join(directory,'qemu-system-aarch64');await writeFile(target,original,{mode:0o755});await writeFile(join(assetsDir,'32.png'),replacementPNG);
   const profiles=[{revision:'37.1.11',build:'fixture',binary:'qemu/darwin-aarch64/qemu-system-aarch64',sha256:sha256(original),slots:[{size:32,length:512,sha256:sha256(originalPNG),replacementSha256:sha256(replacementPNG)}]}];
   const adapter={platform:'darwin',copy:async(a,b)=>{await copyFile(a,b);await chmod(b,(await stat(a)).mode & 0o777);},verify:async()=>{},sign:async()=>{}};
-  return {icons:'phone',sdk,assetsDir,backupDir,profiles,adapter,target,original};
+  return {names:'off',icons:'phone',sdk,assetsDir,backupDir,profiles,adapter,target,original};
 }
 
 test('apply, idempotence, restore and reapply preserve exact original bytes and mode',async t=>{
@@ -192,4 +192,56 @@ test('installed runtime symlinks are refused while restoration remains available
  await symlink(join(f.runtimeDir, 'icons/watch.png'), path);
  assert.equal((await inspect(f)).runtimeHealthy, false); await assert.rejects(apply(f), /Invalid automatic/);
  await restore(f); assert.deepEqual(await readFile(f.target), f.original);
+});
+
+test('AVD naming upgrades legacy backups, preserves originals and restores the standard backend', async t => {
+ const f=await automaticFixture(t);
+ const legacy=await apply(f);
+ const oldReceipt=await readFile(join(legacy.backup,'receipt.json'));
+ const named=await apply({...f,names:'avd'});
+ const status=await inspect(f);
+ assert.equal(status.names,'avd');assert.equal(status.namingHealthy,true);assert.equal(status.receipt.schema,3);
+ assert.deepEqual(await readFile(join(legacy.backup,'receipt.json')),oldReceipt);
+ assert.deepEqual(await readFile(join(named.backup,'original')),f.original);
+ assert.equal((await apply({...f,names:'avd'})).changed,false);
+ await restore(f);assert.deepEqual(await readFile(f.target),f.original);
+ await assert.rejects(lstat(join(f.sdk,'emulator/qemu/darwin-aarch64/.emulator-tweaks-launch.json')),/ENOENT/);
+ await apply({...f,names:'avd'});assert.equal((await inspect(f)).namingHealthy,true);
+ await apply(f);assert.equal((await inspect(f)).names,'off');
+ await assert.rejects(lstat(join(f.sdk,'emulator/qemu/darwin-aarch64/.emulator-tweaks-launch.json')),/ENOENT/);
+ await restore(f);assert.deepEqual(await readFile(f.target),f.original);
+});
+
+test('missing naming script does not prevent exact restore, and foreign configuration is preserved',async t=>{
+ const f=await automaticFixture(t);const named=await apply({...f,names:'avd'});
+ await rm(join(named.backup,'launch.mjs'));
+ assert.equal((await inspect(f)).namingHealthy,false);
+ await assert.rejects(apply({...f,names:'avd'}),/ENOENT|corrupt/);
+ await restore(f);assert.deepEqual(await readFile(f.target),f.original);
+ const config=join(f.sdk,'emulator/qemu/darwin-aarch64/.emulator-tweaks-launch.json');
+ await writeFile(config,'foreign configuration');
+ await assert.rejects(apply({...f,names:'avd'}),/Unrecognized/);
+ assert.equal(await readFile(config,'utf8'),'foreign configuration');
+});
+
+test('naming interruption recovers without losing the vendor backup or configuration ownership',async t=>{
+ const f=await automaticFixture(t);const verify=f.adapter.verify;
+ f.adapter.verify=async file=>{if(file.includes('.emulator-icon-'))throw new Error('interrupted');};
+ await assert.rejects(apply({...f,names:'avd'}),/interrupted/);
+ assert.deepEqual(await readFile(f.target),f.original);
+ f.adapter.verify=verify;await apply({...f,names:'avd'});
+ assert.equal((await inspect(f)).namingHealthy,true);
+ await restore(f);assert.deepEqual(await readFile(f.target),f.original);
+});
+
+test('naming backend corruption and SDK updates are detected without overwriting installed files',async t=>{
+ const f=await automaticFixture(t);const named=await apply({...f,names:'avd'});
+ await writeFile(join(named.backup,'backend'),'corrupt');
+ assert.equal((await inspect(f)).namingHealthy,false);
+ await assert.rejects(apply({...f,names:'avd'}),/corrupt/);
+ await restore(f);assert.deepEqual(await readFile(f.target),f.original);
+ const other=await automaticFixture(t);const result=await apply({...other,names:'avd'});
+ await writeFile(other.target,'SDK update');await assert.rejects(restore(other),/Refusing/);
+ await assert.rejects(apply({...other,names:'avd'}),/Unsupported/);
+ assert.deepEqual(await readFile(join(result.backup,'original')),other.original);
 });

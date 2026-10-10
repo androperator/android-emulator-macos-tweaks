@@ -7,6 +7,7 @@ import { sha256, patchImages } from './png.js';
 import { macOS } from './platform.js';
 import { addIconHelper } from './macho.js';
 import { readRuntime, copyRuntime, verifyRuntime, runtimeHash } from './runtime.js';
+import { readNamingBundle, configurationHash, verifyNaming, installConfiguration, removeConfiguration } from './names.js';
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const bundledProfiles = JSON.parse(await readFile(new URL('./profiles.json', import.meta.url)));
 const hashFile = async file => sha256(await readFile(file));
@@ -56,30 +57,39 @@ export async function inspect({ sdk: explicit, backupDir, profiles = bundledProf
   let receipts = [];
   try {
     for (const name of await readdir(folder)) {
-      if (!/^[a-f0-9]{64}(?:-automatic-[a-f0-9]{64})?$/.test(name)) continue;
+      if (!/^[a-f0-9]{64}(?:-(?:automatic|names)-[a-f0-9]{64})?$/.test(name)) continue;
       const receiptPath = join(folder, name, 'receipt.json');
       try {
         if (!(await lstat(receiptPath)).isFile()) throw new Error('Invalid backup receipt');
         const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
-        if (![1, 2].includes(receipt.schema) || receipt.target !== target || receipt.originalHash !== name.slice(0, 64) || !/^[a-f0-9]{64}$/.test(receipt.patchedHash ?? '') || !['prepared','applied','restored'].includes(receipt.state)) throw new Error('Invalid backup receipt');
+        if (![1, 2, 3].includes(receipt.schema) || receipt.target !== target || receipt.originalHash !== name.slice(0, 64) || !/^[a-f0-9]{64}$/.test(receipt.patchedHash ?? '') || !['prepared','applied','restored'].includes(receipt.state)) throw new Error('Invalid backup receipt');
         if (receipt.schema === 1 && name !== receipt.originalHash) throw new Error('Invalid legacy backup directory');
         if (receipt.schema === 2 && (receipt.icons !== 'auto' || name !== `${receipt.originalHash}-automatic-${runtimeHash(receipt.runtime)}`)) throw new Error('Invalid automatic backup directory');
+        if (receipt.schema === 3 && (name !== `${receipt.originalHash}-names-${receipt.namesHash}` || !['auto', 'phone'].includes(receipt.icons) || ![receipt.namesHash, receipt.backendHash, receipt.scriptHash, receipt.configHash].every(hash => /^[a-f0-9]{64}$/.test(hash ?? '')))) throw new Error('Invalid naming backup directory');
+        if (receipt.schema === 3 && receipt.icons === 'auto') runtimeHash(receipt.runtime);
         receipts.push({ ...receipt, directory: join(folder, name) });
       } catch (error) {
         throw new Error(`Cannot read backup receipt ${receiptPath}: ${error.message}`);
       }
     }
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  const receipt = receipts.find(record => record.patchedHash === targetHash) ?? receipts.find(record => record.originalHash === targetHash);
+  const configHash = await configurationHash(target);
+  const receipt = receipts.find(record => record.schema === 3 && record.configHash === configHash && [record.patchedHash, record.originalHash].includes(targetHash)) ?? receipts.find(record => record.patchedHash === targetHash) ?? receipts.find(record => record.originalHash === targetHash);
   const profile = profiles.find(item => item.revision === revision && item.sha256 === targetHash);
   const state = receipt?.patchedHash === targetHash ? 'patched' : profile ? 'original' : 'unsupported';
   let runtimeHealthy = null;
-  if (receipt?.schema === 2 && state === 'patched') {
+  if (receipt?.runtime && state === 'patched') {
     try { await verifyRuntime(join(receipt.directory, 'runtime'), receipt.runtime); runtimeHealthy = true; }
     catch { runtimeHealthy = false; }
   }
-  const icons = state === 'patched' ? (receipt.schema === 2 ? 'auto' : 'phone') : null;
-  return { icons, runtimeHealthy, sdk, revision, target, targetHash, storage, folder, targetId, state, receipt, profile, adapter, mode: info.mode & 0o777, receipts };
+  const icons = state === 'patched' ? (receipt.icons ?? 'phone') : null;
+  const names = state === 'patched' && receipt.schema === 3 ? 'avd' : 'off';
+  let namingHealthy = null;
+  if (names === 'avd') {
+    try { await verifyNaming(receipt); namingHealthy = configHash === receipt.configHash; }
+    catch { namingHealthy = false; }
+  }
+  return { configHash, names, namingHealthy, icons, runtimeHealthy, sdk, revision, target, targetHash, storage, folder, targetId, state, receipt, profile, adapter, mode: info.mode & 0o777, receipts };
 }
 
 async function withLock(context, operation) {
@@ -113,6 +123,8 @@ async function replace(context, source, expectedHash) {
 
 export async function apply(options = {}) {
   const icons = options.icons ?? 'auto';
+  const names = options.names ?? 'avd';
+  if (!['avd', 'off'].includes(names)) throw new Error('Expected --names avd or off');
   if (!['auto', 'phone'].includes(icons)) throw new Error('Expected --icons auto or phone');
   const context = await inspect(options);
   const runtimeDirectory = options.runtimeDir ?? join(packageRoot, 'assets/runtime');
@@ -120,21 +132,31 @@ export async function apply(options = {}) {
   const profile = (options.profiles ?? bundledProfiles).find(item => item.revision === context.revision && item.sha256 === originalHash);
   if (!profile) throw new Error(`Unsupported emulator ${context.revision ?? 'version'} (${context.targetHash}). No files changed. See supported builds in README.`);
   const bundle = icons === 'auto' ? await readRuntime(runtimeDirectory, context.adapter) : null;
-  const directory = join(context.folder, icons === 'auto' ? `${originalHash}-automatic-${bundle.hash}` : originalHash);
+  const naming = names === 'avd' ? await readNamingBundle(options.packageRoot ?? packageRoot, context.adapter, options.nodePath) : null;
+  const namesHash = naming ? sha256(Buffer.from(JSON.stringify([naming.hash, icons, bundle?.hash ?? null]))) : null;
+  const directory = join(context.folder, naming ? `${originalHash}-names-${namesHash}` : icons === 'auto' ? `${originalHash}-automatic-${bundle.hash}` : originalHash);
   return withLock(context, async () => {
     await context.adapter.verify(context.target);
+    const activeConfig = await configurationHash(context.target);
+    if (activeConfig && !context.receipts.some(record => record.schema === 3 && record.configHash === activeConfig)) throw new Error('Unrecognized naming configuration; nothing overwritten');
     const existing = context.receipts.find(record => record.directory === directory);
     if (existing) {
       if (await hashFile(join(directory, 'original')) !== originalHash) throw new Error('Original backup is corrupt; refusing to replace it');
       if (await hashFile(join(directory, 'patched')) !== existing.patchedHash) throw new Error('Patched backup is corrupt');
-      if (existing.schema === 2) {
+      if (existing.runtime) {
         await verifyRuntime(join(directory, 'runtime'), existing.runtime);
         await context.adapter.verify(join(directory, 'runtime/helper.dylib'));
       }
-      if (context.targetHash === existing.patchedHash) return { ...context, changed: false };
+      if (existing.schema === 3) {
+        await verifyNaming(existing);
+        await context.adapter.verify(join(directory, 'backend'));
+        await installConfiguration(context, existing);
+      }
+      if (context.targetHash === existing.patchedHash && (existing.schema !== 3 || activeConfig === existing.configHash)) return { ...context, changed: false };
       await replace(context, join(directory, 'patched'), existing.patchedHash);
+      if (!naming) await removeConfiguration(context);
       await atomicJSON(join(directory, 'receipt.json'), { ...existing, directory: undefined, state: 'applied' });
-      return { ...context, state: 'patched', icons, runtimeHealthy: bundle ? true : null, changed: true, backup: directory };
+      return { ...context, state: 'patched', icons, names, namingHealthy: naming ? true : null, runtimeHealthy: bundle ? true : null, changed: true, backup: directory };
     }
     // Always derive a new patch from the verified original, including legacy upgrades.
     const originalSource = context.state === 'patched' ? join(context.receipt.directory, 'original') : context.target;
@@ -155,8 +177,20 @@ export async function apply(options = {}) {
     if (bundle) await copyRuntime(runtimeDirectory, join(preparation, 'runtime'), bundle.manifest);
     await writeFile(candidate, bundle ? addIconHelper(patched, join(directory, 'runtime/helper.dylib')) : patched);
     await context.adapter.sign(backup, candidate, preparation);
+    let namingFields = {};
+    if (naming) {
+      const backend = join(preparation, 'backend');
+      await rename(candidate, backend);
+      const backendHash = await hashFile(backend), scriptHash = sha256(naming.script);
+      await writeFile(join(preparation, 'launch.mjs'), naming.script, { mode: 0o600 });
+      const configuration = { schema: 1, sdk: context.sdk, target: context.target, directory, revision: context.revision, node: naming.node, script: join(directory, 'launch.mjs'), backend: join(directory, 'backend'), backendHash, scriptHash };
+      await atomicJSON(join(preparation, 'launch.json'), configuration);
+      namingFields = { namesHash, backendHash, scriptHash, configHash: await hashFile(join(preparation, 'launch.json')) };
+      await context.adapter.copy(naming.launcher, candidate);
+      await context.adapter.sign(backup, candidate, preparation);
+    }
     const patchedHash = await hashFile(candidate);
-    const receipt = { schema: bundle ? 2 : 1, target: context.target, revision: context.revision, build: profile.build, originalHash, patchedHash, state: 'prepared', created: new Date().toISOString(), slots, ...(bundle ? { icons, runtime: bundle.manifest } : {}) };
+    const receipt = { schema: naming ? 3 : bundle ? 2 : 1, target: context.target, revision: context.revision, build: profile.build, originalHash, patchedHash, state: 'prepared', created: new Date().toISOString(), slots, ...(bundle ? { icons, runtime: bundle.manifest } : {}), ...(naming ? { icons, ...namingFields } : {}) };
     for (const file of [backup, candidate]) {
       const handle = await open(file, 'r');
       try { await handle.sync(); } finally { await handle.close(); }
@@ -167,21 +201,34 @@ export async function apply(options = {}) {
       await verifyRuntime(join(directory, 'runtime'), bundle.manifest);
       await context.adapter.verify(join(directory, 'runtime/helper.dylib'));
     }
+    if (naming) {
+      const prepared = { ...receipt, directory };
+      await verifyNaming(prepared);
+      await installConfiguration(context, prepared);
+    }
     await replace(context, join(directory, 'patched'), patchedHash);
+    if (!naming) await removeConfiguration(context);
     await atomicJSON(join(directory, 'receipt.json'), { ...receipt, state: 'applied' });
-    return { ...context, state: 'patched', icons, runtimeHealthy: bundle ? true : null, changed: true, backup: directory };
+    return { ...context, state: 'patched', icons, names, namingHealthy: naming ? true : null, runtimeHealthy: bundle ? true : null, changed: true, backup: directory };
   });
 }
 
 export async function restore(options = {}) {
   const context = await inspect(options);
-  if (context.receipt?.originalHash === context.targetHash) return { ...context, changed: false };
+  if (context.receipt?.originalHash === context.targetHash) {
+    if (context.configHash) return withLock(context, async () => {
+      await removeConfiguration(context);
+      return { ...context, changed: false };
+    });
+    return { ...context, changed: false };
+  }
   if (context.state !== 'patched') throw new Error('No matching applied backup for this executable. Refusing to overwrite an SDK update or unrecognized patch.');
   return withLock(context, async () => {
     const backup = join(context.receipt.directory, 'original');
     if (await hashFile(backup) !== context.receipt.originalHash) throw new Error('Original backup is corrupt; nothing restored');
     await replace(context, backup, context.receipt.originalHash);
+    await removeConfiguration(context);
     await atomicJSON(join(context.receipt.directory, 'receipt.json'), { ...context.receipt, directory: undefined, state: 'restored' });
-    return { ...context, state: 'original', icons: null, runtimeHealthy: null, changed: true, backup: context.receipt.directory };
+    return { ...context, state: 'original', icons: null, names: 'off', namingHealthy: null, runtimeHealthy: null, changed: true, backup: context.receipt.directory };
   });
 }
