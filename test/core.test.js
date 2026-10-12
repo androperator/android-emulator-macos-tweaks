@@ -245,3 +245,35 @@ test('naming backend corruption and SDK updates are detected without overwriting
  await assert.rejects(apply({...other,names:'avd'}),/Unsupported/);
  assert.deepEqual(await readFile(join(result.backup,'original')),other.original);
 });
+
+
+test('nearby and different minor versions accept changed binaries with verified icon structure', async t => {
+ for (const revision of ['37.1.10', '37.2.1']) {
+  const f = await automaticFixture(t);
+  await writeFile(join(f.sdk, 'emulator/source.properties'), `Pkg.Revision=${revision}`);
+  f.original = Buffer.concat([f.original, Buffer.from('different build')]);
+  await writeFile(f.target, f.original);
+  assert.equal((await inspect(f)).state, 'original');
+  await apply({...f, names:'avd'});
+  assert.equal((await inspect(f)).state, 'patched');
+  assert.equal((await apply({...f, names:'avd'})).changed, false);
+  await restore(f);
+  assert.deepEqual(await readFile(f.target), f.original);
+ }
+});
+
+test('structural compatibility rejects duplicate icons and invalid Mach-O before backup', async t => {
+ for (const duplicate of [true, false]) {
+  const f = await automaticFixture(t);
+  await writeFile(join(f.sdk, 'emulator/source.properties'), 'Pkg.Revision=37.1.10');
+  const bytes = duplicate ? Buffer.concat([f.original, png(0)]) : Buffer.from(f.original);
+  if (!duplicate) bytes.writeUInt32LE(0, 0);
+  await writeFile(f.target, bytes);
+  const status = await inspect(f);
+  assert.equal(status.state, 'unsupported');
+  assert.match(status.compatibilityReason, duplicate ? /exactly one/ : /Mach-O/);
+  await assert.rejects(apply(f), /Unsupported/);
+  assert.deepEqual(await readFile(f.target), bytes);
+  await assert.rejects(stat(f.backupDir), /ENOENT/);
+ }
+});
