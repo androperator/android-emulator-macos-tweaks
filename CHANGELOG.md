@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+
+- Accept compatible Apple Silicon Android Emulator 37.x builds by validating executable structure and embedded icon allocations instead of requiring an exact revision and whole-executable hash. Preserve exact backups, signing checks and SDK-update protection.
+- Include supported version families and compatibility failure reasons in status JSON.
+
 ## 1.0.2
 
 - Apply AVD Dock and Cmd-Tab labels to standard SDK launches by default, with `--names off` for icons only. Preserve launch arguments and environment, legacy backups, exact restore and safe per-AVD caches.

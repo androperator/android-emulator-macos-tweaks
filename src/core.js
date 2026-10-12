@@ -3,7 +3,7 @@ import { resolve, join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { sha256, patchImages } from './png.js';
+import { sha256, patchImages, locateIcons } from './png.js';
 import { macOS } from './platform.js';
 import { addIconHelper } from './macho.js';
 import { readRuntime, copyRuntime, verifyRuntime, runtimeHash } from './runtime.js';
@@ -11,6 +11,24 @@ import { readNamingBundle, configurationHash, verifyNaming, installConfiguration
 const packageRoot = fileURLToPath(new URL('../', import.meta.url));
 const bundledProfiles = JSON.parse(await readFile(new URL('./profiles.json', import.meta.url)));
 const hashFile = async file => sha256(await readFile(file));
+
+async function resolveProfile(bytes, revision, profiles, binary) {
+  const hash = sha256(bytes);
+  const exact = profiles.find(item => item.revision === revision && item.sha256 === hash && item.binary === binary);
+  if (exact) return { profile: exact, compatibilityReason: null };
+  const candidates = profiles.filter(item => item.revision.split('.')[0] === revision?.split('.')[0] && item.binary === binary);
+  if (!candidates.length) return { profile: null, compatibilityReason: `Requires an Apple Silicon emulator in a supported major version (${[...new Set(profiles.map(item => item.revision.split('.')[0] + '.x'))].join(', ')}).` };
+  let compatibilityReason;
+  for (const template of candidates) {
+    try {
+      addIconHelper(bytes, '/compatibility-check/helper.dylib');
+      const profile = { ...template, revision, build: 'structurally compatible', sha256: hash };
+      locateIcons(bytes, profile);
+      return { profile, compatibilityReason: null };
+    } catch (error) { compatibilityReason = error.message; }
+  }
+  return { profile: null, compatibilityReason };
+}
 
 async function atomicJSON(file, value) {
   const temporary = `${file}.${randomUUID()}.tmp`;
@@ -75,7 +93,10 @@ export async function inspect({ sdk: explicit, backupDir, profiles = bundledProf
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const configHash = await configurationHash(target);
   const receipt = receipts.find(record => record.schema === 3 && record.configHash === configHash && [record.patchedHash, record.originalHash].includes(targetHash)) ?? receipts.find(record => record.patchedHash === targetHash) ?? receipts.find(record => record.originalHash === targetHash);
-  const profile = profiles.find(item => item.revision === revision && item.sha256 === targetHash);
+  const originalSource = receipt?.patchedHash === targetHash ? join(receipt.directory, 'original') : target;
+  const originalBytes = await readFile(originalSource);
+  if (receipt?.patchedHash === targetHash && sha256(originalBytes) !== receipt.originalHash) throw new Error('Original backup is corrupt');
+  const { profile, compatibilityReason } = await resolveProfile(originalBytes, revision, profiles, target.slice(sdk.length + '/emulator/'.length));
   const state = receipt?.patchedHash === targetHash ? 'patched' : profile ? 'original' : 'unsupported';
   let runtimeHealthy = null;
   if (receipt?.runtime && state === 'patched') {
@@ -89,7 +110,7 @@ export async function inspect({ sdk: explicit, backupDir, profiles = bundledProf
     try { await verifyNaming(receipt); namingHealthy = configHash === receipt.configHash; }
     catch { namingHealthy = false; }
   }
-  return { configHash, names, namingHealthy, icons, runtimeHealthy, sdk, revision, target, targetHash, storage, folder, targetId, state, receipt, profile, adapter, mode: info.mode & 0o777, receipts };
+  return { compatibilityReason, supportedVersions: [...new Set(profiles.map(item => item.revision.split('.')[0] + '.x'))], configHash, names, namingHealthy, icons, runtimeHealthy, sdk, revision, target, targetHash, storage, folder, targetId, state, receipt, profile, adapter, mode: info.mode & 0o777, receipts };
 }
 
 async function withLock(context, operation) {
@@ -129,8 +150,8 @@ export async function apply(options = {}) {
   const context = await inspect(options);
   const runtimeDirectory = options.runtimeDir ?? join(packageRoot, 'assets/runtime');
   const originalHash = context.state === 'patched' ? context.receipt.originalHash : context.targetHash;
-  const profile = (options.profiles ?? bundledProfiles).find(item => item.revision === context.revision && item.sha256 === originalHash);
-  if (!profile) throw new Error(`Unsupported emulator ${context.revision ?? 'version'} (${context.targetHash}). No files changed. See supported builds in README.`);
+  const profile = context.profile;
+  if (!profile) throw new Error(`Unsupported emulator ${context.revision ?? 'version'} (${context.targetHash}). No files changed. ${context.compatibilityReason}`);
   const bundle = icons === 'auto' ? await readRuntime(runtimeDirectory, context.adapter) : null;
   const naming = names === 'avd' ? await readNamingBundle(options.packageRoot ?? packageRoot, context.adapter, options.nodePath) : null;
   const namesHash = naming ? sha256(Buffer.from(JSON.stringify([naming.hash, icons, bundle?.hash ?? null]))) : null;

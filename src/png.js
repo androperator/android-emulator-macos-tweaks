@@ -36,13 +36,10 @@ export function pngLength(bytes, offset = 0, expectedSize) {
   throw new Error('Missing PNG end');
 }
 
-export function patchImages(original, profile, replacements) {
+export function locateIcons(original, profile) {
   if (sha256(original) !== profile.sha256) throw new Error('Unsupported executable hash; no files changed');
-  const patched = Buffer.from(original);
   const slots = [];
   for (const slot of profile.slots) {
-    const replacement = replacements.get(slot.size);
-    if (!replacement || replacement.length !== slot.length || sha256(replacement) !== slot.replacementSha256 || pngLength(replacement, 0, slot.size) !== slot.length) throw new Error('Replacement artwork failed validation');
     const matches = [];
     for (let offset = original.indexOf(signature); offset !== -1; offset = original.indexOf(signature, offset + 8)) {
       if (sha256(original.subarray(offset, offset + slot.length)) === slot.sha256) {
@@ -53,8 +50,18 @@ export function patchImages(original, profile, replacements) {
     if (matches.length !== 1) throw new Error(`Expected exactly one ${slot.size}px icon; found ${matches.length}`);
     const offset = matches[0];
     if (slots.some(other => offset < other.offset + other.length && other.offset < offset + slot.length)) throw new Error('Overlapping icon allocations');
-    replacement.copy(patched, offset);
     slots.push({ offset, length: slot.length, size: slot.size });
+  }
+  return slots;
+}
+
+export function patchImages(original, profile, replacements) {
+  const slots = locateIcons(original, profile);
+  const patched = Buffer.from(original);
+  for (const slot of profile.slots) {
+    const replacement = replacements.get(slot.size);
+    if (!replacement || replacement.length !== slot.length || sha256(replacement) !== slot.replacementSha256 || pngLength(replacement, 0, slot.size) !== slot.length) throw new Error('Replacement artwork failed validation');
+    replacement.copy(patched, slots.find(found => found.size === slot.size).offset);
   }
   return { patched, slots };
 }

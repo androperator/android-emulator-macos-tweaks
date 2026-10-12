@@ -18,10 +18,10 @@ This is an independent CLI. It does not depend on ADBuddy or change emulator lau
 
 - macOS 14 or newer and Node.js 22 or newer.
 - Write access to your Android SDK and backup location; do not run with sudo.
-- Android Emulator **37.1.11, build 15917651, Apple Silicon GUI binary**.
+- Android Emulator **37.x, Apple Silicon GUI binary**, with a compatible icon and executable layout.
 - Executable SHA-256: `eaa97a970b81f81640db73ed79e19ee173323653a0a1203217e1199d078011f3`.
 
-This first release intentionally supports one verified binary. Intel and other emulator builds are reported as unsupported and refused. Matching the version number alone is insufficient: the entire original executable and its embedded icon images must match the support profile.
+The reference build is 37.1.11, build 15917651. Other 37.x builds are checked by executable structure and embedded icon contents rather than an exact version or whole-file hash. Intel builds and other major versions remain unsupported.
 
 Patching replaces Google's signature with a **local ad-hoc signature**, preserving the original entitlements and hardened runtime. The modified emulator is no longer Google-signed or notarized. No developer certificate or private key is used. Gatekeeper may treat the patched emulator differently. The CLI does not disable Gatekeeper or change system security settings.
 
@@ -120,7 +120,7 @@ node scripts/verify-names.mjs
 
 Tests use synthetic executables and fake process integrations. They require neither an Android SDK nor a device. macOS CI runs on Node.js 22 and 24. Real signing and boot checks supplement these tests for the supported build.
 
-To add support for a build, use an untouched, signature-verified vendor executable. Record its revision, build ID, architecture, full SHA-256, and each original PNG hash and allocation length in `src/profiles.json`. The patcher discovers images by content rather than fixed offsets. Provide replacement PNGs that fit those allocations exactly, with valid chunks and checksums. Verify signing, boot, Dock appearance, and exact restore on that build before adding it to the support table. Do not loosen hash checks to accept a new build.
+To add support for a build, use an untouched, signature-verified vendor executable. Record its revision, build ID, architecture, full SHA-256, and each original PNG hash and allocation length in `src/profiles.json`. The patcher discovers images by content rather than fixed offsets. Provide replacement PNGs that fit those allocations exactly, with valid chunks and checksums. Verify signing, boot, Dock appearance, and exact restore on that build before adding it to the support table. New layouts require a new verified profile; compatible 37.x builds do not require a separate whole-executable hash.
 
 The editable `assets/Emulator.icon` source uses a vector phone/Android symbol, white background, and Apple's native icon renderer. The bundled 32, 128 and 256 pixel PNGs were compiled with Xcode's asset compiler and palette-compressed to fit the emulator's allocations. Xcode is not required by CLI users. Native helper source is in `native/`; `node scripts/build-runtime.mjs` rebuilds the packaged arm64 helper and all five icons and writes their content manifest. `npm run build:launcher` rebuilds the AVD dispatcher and its manifest. Rebuild and run native verification after changing those sources; review the regenerated manifest and runtime files together.
 
@@ -135,3 +135,15 @@ Android is a trademark of Google LLC. This project is not affiliated with or end
 Written by clankers. Engineered by [@chrismlacy](https://x.com/chrismlacy).
 
 Copyright (C) 2026 Action Launcher Pty Ltd
+
+### Compatibility across SDK updates
+
+Apple Silicon Android Emulator 37.x builds are accepted when their arm64 Mach-O
+structure and embedded icon allocations match the bundled patch profile. The
+reference build is 37.1.11; an exact revision or whole-executable hash match is
+not required for other 37.x builds. Icon contents, dimensions, checksums, unique
+allocations and load-command padding are checked before patching. Intel builds,
+other major versions and incompatible layouts remain unsupported. Status JSON
+includes `supportedVersions` and `compatibilityReason` for diagnosis. Compatible
+does not mean every build has been tested live. Exact original backups and
+SDK-update protection remain in effect.
